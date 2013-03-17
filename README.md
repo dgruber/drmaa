@@ -2,7 +2,7 @@
 ========
 
 DRMAA job submission library for Go (#golang). Tested with Univa Grid Engine but 
-should work also other resource manager / cluste scheduler. The "gestatus" library
+should work also other resource manager / cluster scheduler. The "gestatus" library
 only works with Grid Engine.
 
 ## Example ##
