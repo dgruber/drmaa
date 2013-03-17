@@ -93,7 +93,4 @@ func main() {
 	fmt.Printf("Job Destination Queue Instance List: %s\n", jobStatus.DestinationQueueInstanceList())
 	fmt.Printf("Job Destination Host List: %s\n", jobStatus.DestinationHostList())
 	fmt.Printf("Job Tasks: %d\n", jobStatus.TasksCount())
-
-   /* close session (disconnect from Grid Engine) */
-   s.Exit();
 }
