@@ -10,7 +10,10 @@ only works with Grid Engine.
 In case of Univa Grid Engine (other cluster scheduler are not tested yet):
 
 ~~~
+   cd ~/go/src
+   git clone git://github.com/dgruber/drmaa.git
    source /path/to/grid/engine/installation/default/settings.sh
+   cd drmaa
    ./build
    cd example
    go build
