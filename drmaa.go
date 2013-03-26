@@ -37,9 +37,10 @@ import (
 	"unsafe"
 )
 
-// You *must* apapt LDFLAGS and CFLAGS below pointing to your
+// You can adapt LDFLAGS and CFLAGS below pointing to your
 // Grid Engine (or other DRM) installation. ($SGE_ROOT/lib/<arch> and
-// $SGE_ROOT/include)
+// $SGE_ROOT/include). Then setting the variables in the build.sh
+// would not be required anymore (go install would just work).
 
 /* 
  #cgo LDFLAGS: -ldrmaa -O2 -g
