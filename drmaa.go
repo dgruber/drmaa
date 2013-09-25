@@ -43,7 +43,8 @@ import (
 // would not be required anymore (go install would just work).
 
 /* 
- #cgo LDFLAGS: -ldrmaa -O2 -g
+ #cgo LDFLAGS: -ldrmaa
+ #cgo CFLAGS: -O2 -g
  #include <stdio.h>
  #include <stdlib.h>
  #include <stddef.h> 
