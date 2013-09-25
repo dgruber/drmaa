@@ -68,6 +68,14 @@ static void freeStringArray(char **a, const int size) {
       free(a[i]);
    free(a);
 }
+
+int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
+#ifdef TORQUE
+    return drmaa_get_num_attr_values(values, (size_t *) size);
+#else
+    return drmaa_get_num_attr_values(values, size);
+#endif
+}
 */
 import "C"
 
@@ -696,7 +704,7 @@ func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err *Error
 
 	// rusage
 	usageLength := C.int(0)
-	if errNumber := C.drmaa_get_num_attr_values(crusage, &usageLength); errNumber != C.DRMAA_ERRNO_SUCCESS {
+	if errNumber := C._drmaa_get_num_attr_values(crusage, &usageLength); errNumber != C.DRMAA_ERRNO_SUCCESS {
 		C.drmaa_release_attr_values(crusage)
 		ce := makeError(C.GoString(diag), errorId[errNumber])
 		return jobinfo, &ce
