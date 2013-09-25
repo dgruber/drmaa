@@ -195,7 +195,6 @@ const (
 	ExitTimeout
 	NoRusage
 	NoMoreElements
-	NoErrno
 )
 
 // Internal map between C DRMAA error and Go DRMAA error.
@@ -226,7 +225,6 @@ var errorId = map[C.int]ErrorId{
 	C.DRMAA_ERRNO_EXIT_TIMEOUT:                       ExitTimeout,
 	C.DRMAA_ERRNO_NO_RUSAGE:                          NoRusage,
 	C.DRMAA_ERRNO_NO_MORE_ELEMENTS:                   NoMoreElements,
-	C.DRMAA_NO_ERRNO:                                 NoErrno,
 }
 
 // Internal map between GO DRMAA error und C DRMAA error.
@@ -257,7 +255,6 @@ var internalError = map[ErrorId]C.int{
 	ExitTimeout:                    C.DRMAA_ERRNO_EXIT_TIMEOUT,
 	NoRusage:                       C.DRMAA_ERRNO_NO_RUSAGE,
 	NoMoreElements:                 C.DRMAA_ERRNO_NO_MORE_ELEMENTS,
-	NoErrno:                        C.DRMAA_NO_ERRNO,
 }
 
 // File transfer mode struct.
