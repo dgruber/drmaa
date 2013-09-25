@@ -26,7 +26,7 @@ package private_gestatus
    be visible for the user.
 */
 import (
-	"drmaa"
+	"github.com/dgruber/drmaa"
 	"encoding/xml"
 	"fmt"
 	"log"
