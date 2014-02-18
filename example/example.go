@@ -25,8 +25,8 @@
 package main
 
 import (
-	"drmaa"
-	"drmaa/gestatus"
+	"github.com/dgruber/drmaa"
+	"github.com/dgruber/drmaa/gestatus"
 	"fmt"
 	"time"
 )

@@ -11,6 +11,8 @@ In case of Univa Grid Engine (other cluster scheduler are not tested yet):
 
 ~~~
    cd ~/go/src
+   mkdir -p github.com/dgruber
+   cd github.com/dgruber
    git clone git://github.com/dgruber/drmaa.git
    source /path/to/grid/engine/installation/default/settings.sh
    cd drmaa

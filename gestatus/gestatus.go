@@ -22,8 +22,8 @@
 package gestatus
 
 import (
-	"drmaa"
-	"drmaa/gestatus/private_gestatus"
+	"github.com/dgruber/drmaa"
+	"github.com/dgruber/drmaa/gestatus/private_gestatus"
 	"strings"
 	"time"
 )
