@@ -43,7 +43,8 @@ import (
 // would not be required anymore (go install would just work).
 
 /* 
- #cgo LDFLAGS: -ldrmaa -O2 -g
+ #cgo LDFLAGS: -ldrmaa
+ #cgo CFLAGS: -O2 -g
  #include <stdio.h>
  #include <stdlib.h>
  #include <stddef.h> 
@@ -66,6 +67,14 @@ static void freeStringArray(char **a, const int size) {
    for (; i < size; i++)
       free(a[i]);
    free(a);
+}
+
+int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
+#ifdef TORQUE
+    return drmaa_get_num_attr_values(values, (size_t *) size);
+#else
+    return drmaa_get_num_attr_values(values, size);
+#endif
 }
 */
 import "C"
@@ -194,7 +203,6 @@ const (
 	ExitTimeout
 	NoRusage
 	NoMoreElements
-	NoErrno
 )
 
 // Internal map between C DRMAA error and Go DRMAA error.
@@ -225,7 +233,6 @@ var errorId = map[C.int]ErrorId{
 	C.DRMAA_ERRNO_EXIT_TIMEOUT:                       ExitTimeout,
 	C.DRMAA_ERRNO_NO_RUSAGE:                          NoRusage,
 	C.DRMAA_ERRNO_NO_MORE_ELEMENTS:                   NoMoreElements,
-	C.DRMAA_NO_ERRNO:                                 NoErrno,
 }
 
 // Internal map between GO DRMAA error und C DRMAA error.
@@ -256,7 +263,6 @@ var internalError = map[ErrorId]C.int{
 	ExitTimeout:                    C.DRMAA_ERRNO_EXIT_TIMEOUT,
 	NoRusage:                       C.DRMAA_ERRNO_NO_RUSAGE,
 	NoMoreElements:                 C.DRMAA_ERRNO_NO_MORE_ELEMENTS,
-	NoErrno:                        C.DRMAA_NO_ERRNO,
 }
 
 // File transfer mode struct.
@@ -698,7 +704,7 @@ func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err *Error
 
 	// rusage
 	usageLength := C.int(0)
-	if errNumber := C.drmaa_get_num_attr_values(crusage, &usageLength); errNumber != C.DRMAA_ERRNO_SUCCESS {
+	if errNumber := C._drmaa_get_num_attr_values(crusage, &usageLength); errNumber != C.DRMAA_ERRNO_SUCCESS {
 		C.drmaa_release_attr_values(crusage)
 		ce := makeError(C.GoString(diag), errorId[errNumber])
 		return jobinfo, &ce

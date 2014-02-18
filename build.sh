@@ -4,8 +4,11 @@
 # of your Grid Engine installation before building. "default" is the CELL name, which can
 # be different in your installation.
 
-export CGO_LDFLAGS="-L$SGE_ROOT/lib/lx-amd64/"
-export CGO_CFLAGS="-I$SGE_ROOT/include"
+if [ "$1" = "--torque" ]; then
+    export CGO_CFLAGS='-DTORQUE -I/usr/include/torque'
+else
+    export CGO_LDFLAGS="-L$SGE_ROOT/lib/lx-amd64/"
+    export CGO_CFLAGS="-I$SGE_ROOT/include"
+fi
 
-go install 
-
+go install
