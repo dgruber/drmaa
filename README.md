@@ -23,10 +23,6 @@ Next, we need to compile the code.
 For Univa Grid Engine:
 
 ~~~
-   cd ~/go/src
-   mkdir -p github.com/dgruber
-   cd github.com/dgruber
-   git clone git://github.com/dgruber/drmaa.git
    source /path/to/grid/engine/installation/default/settings.sh
    ./build.sh
    cd example
