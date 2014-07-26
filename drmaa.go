@@ -23,7 +23,7 @@
    0.4 - Added gestatus for detailed job status fetching with "qstat -xml"
 
    If you have questions or have problems with GPL3 please
-   contact me at info@ since gridengine.org.
+   contact me at info @ gridengine.eu.
 
 */
 
