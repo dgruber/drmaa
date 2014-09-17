@@ -109,7 +109,7 @@ type GDILElement struct {
 }
 
 type JATGDIL struct {
-   GdilElement GDILElement `xml:"element"`
+   GdilElement []GDILElement `xml:"element"`
 }
 
 type JBJaSublist struct {
@@ -117,7 +117,7 @@ type JBJaSublist struct {
    JAT_task_number                    int                `xml:"JAT_task_number"`
    JAT_scaled_usage_list              JATScaledUsageList `xml:"JAT_scaled_usage_list"`
    JAT_start_time                     int64              `xml:"JAT_start_time"`
-   JAT_granted_destin_identifier_list []JATGDIL          `xml:"JAT_granted_destin_identifier_list"`
+   JAT_granted_destin_identifier_list JATGDIL            `xml:"JAT_granted_destin_identifier_list"`
 }
 
 // This is 8.1.7 compatible. In 8.2 it was changed to "element".
@@ -471,15 +471,15 @@ func GetGDIL(v *InternalJobStatus, task int) *[]GDIL {
       return nil
    }
 
-   gdil := make([]GDIL, len(taskList[task].JAT_granted_destin_identifier_list))
+   gdil := make([]GDIL, len(taskList[task].JAT_granted_destin_identifier_list.GdilElement))
 
-   for i, gdi := range taskList[task].JAT_granted_destin_identifier_list {
-      gdil[i].FunctionalTicket = gdi.GdilElement.JG_fticket
-      gdil[i].OverrideTicket = gdi.GdilElement.JG_oticket
-      gdil[i].QueueName = gdi.GdilElement.JG_qname
-      gdil[i].SharetreeTicket = gdi.GdilElement.JG_sticket
-      gdil[i].Slots = gdi.GdilElement.JG_slots
-      gdil[i].Ticket = gdi.GdilElement.JG_ticket
+   for i, gdi := range taskList[task].JAT_granted_destin_identifier_list.GdilElement {
+      gdil[i].FunctionalTicket = gdi.JG_fticket
+      gdil[i].OverrideTicket = gdi.JG_oticket
+      gdil[i].QueueName = gdi.JG_qname
+      gdil[i].SharetreeTicket = gdi.JG_sticket
+      gdil[i].Slots = gdi.JG_slots
+      gdil[i].Ticket = gdi.JG_ticket
    }
 
    return &gdil

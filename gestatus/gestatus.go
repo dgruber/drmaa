@@ -271,6 +271,7 @@ func (js *JobStatus) gdilQueueNames(what string, task int) []string {
    qil := make([]string, 16)
 
    gdil := private_gestatus.GetGDIL(&js.js, task)
+
    if gdil == nil {
       return nil
    }
