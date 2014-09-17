@@ -648,7 +648,7 @@ func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err *Error
 		jobinfo.hasExited = true
 		// set exit status
 		exitstatus := C.int(0)
-		if errNumber := C.drmaa_wifexited(&exitstatus, cstat, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
+		if errNumber := C.drmaa_wexitstatus(&exitstatus, cstat, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
 			C.drmaa_release_attr_values(crusage)
 			ce := makeError(C.GoString(diag), errorId[errNumber])
 			return jobinfo, &ce
