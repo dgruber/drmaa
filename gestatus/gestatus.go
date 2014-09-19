@@ -92,6 +92,8 @@ type JobStatus struct {
    js private_gestatus.InternalJobStatus
 }
 
+// Performs qstat -xml -j <jobid> and returns a JobStatus
+// object for this job.
 func GetJob(jobid string) (jobstat JobStatus, err error) {
    js, err := private_gestatus.GetJobStatusById(jobid)
    if err != nil {
@@ -265,6 +267,11 @@ func (js *JobStatus) JobClassName() string {
 // job is sent to, depending on the mailing options.
 func (js *JobStatus) MailAdresses() []string {
    return private_gestatus.GetMailingAdresses(&js.js)
+}
+
+// Returns hard resource requests as name and value
+func (js *JobStatus) HardRequests() ([]string, []string) {
+   return private_gestatus.GetHardRequests(&js.js)
 }
 
 func (js *JobStatus) gdilQueueNames(what string, task int) []string {

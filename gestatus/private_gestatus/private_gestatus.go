@@ -162,6 +162,20 @@ type JBMailList struct {
    MailElement []MRElement `xml:"element"`
 }
 
+// hard resource request list
+type JBHard struct {
+   HardResourceRequest []HardElement `xml:"element"`
+}
+
+// one element of a hard request -hard -l
+type HardElement struct {
+   Name       string  `xml:"CE_name"`
+   ValType    int     `xml:"CE_valtype"`
+   StringVal  string  `xml:"CE_stringval"`
+   DoubleVal  float64 `xml:"CE_doubleval"`
+   Consumable int     `xml:"CE_consumable"`
+}
+
 type RangeElement struct {
    Rn_min  int64 `xml:"RN_min"`
    Rn_max  int64 `xml:"RN_max"`
@@ -202,6 +216,7 @@ type Element struct {
    Jb_verify_suitable_queues int           `xml:"JB_verify_suitable_queues"`
    Jb_soft_wallclock_gmt     int           `xml:"JB_soft_wallclock_gmt"`
    Jb_hard_wallclock_gmt     int           `xml:"JB_hard_wallclock_gmt"`
+   Jb_hard_resource_request  JBHard        `xml:"JB_hard_resource_list"`
    Jb_override_tickets       int           `xml:"JB_override_tickets"`
    Jb_version                int           `xml:"JB_version"`
    Jb_ja_structure           JBJAStructure `xml:"JB_ja_structure"`
@@ -446,6 +461,16 @@ func GetUsageList(v *InternalJobStatus, task int) (resource []string, value []st
       }
    }
    return resource, value
+}
+
+// Returns pairs of name and value from hard resource requests (-hard -l mem=1G)
+// -> "mem" "1G
+func GetHardRequests(v *InternalJobStatus) (nm []string, val []string) {
+   for _, name := range v.Jobinf.Element.Jb_hard_resource_request.HardResourceRequest {
+      nm = append(nm, name.Name)
+      val = append(val, name.StringVal)
+   }
+   return nm, val
 }
 
 // Amount of array job tasks
