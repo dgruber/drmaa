@@ -1,4 +1,4 @@
-# go-drmaa #
+go-drmaa
 ========
 [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/dgruber/drmaa)
 [![Apache V2 License](http://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/dgruber/drmaa/blob/master/COPYING)
