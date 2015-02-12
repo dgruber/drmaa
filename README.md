@@ -1,5 +1,7 @@
 # go-drmaa #
 ========
+[![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/dgruber/drmaa)
+[![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://raw.githubusercontent.com/dgruber/drmaa/LICENSE)
 
 DRMAA job submission library for Go (#golang). Tested with Univa Grid Engine
 and Torque, but it should work also other resource manager / cluster scheduler. 
