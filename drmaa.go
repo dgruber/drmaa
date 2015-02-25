@@ -1,4 +1,4 @@
-/* 
+/*
     Copyright 2012, 2013 Daniel Gruber, info@gridengine.eu
 
    Redistribution and use in source and binary forms, with or without
@@ -51,12 +51,12 @@ import (
 // $SGE_ROOT/include). Then setting the variables in the build.sh
 // would not be required anymore (go install would just work).
 
-/* 
+/*
  #cgo LDFLAGS: -ldrmaa
  #cgo CFLAGS: -O2 -g
  #include <stdio.h>
  #include <stdlib.h>
- #include <stddef.h> 
+ #include <stddef.h>
  #include "drmaa.h"
 
 static char* makeString(size_t size) {
@@ -424,9 +424,9 @@ func MakeSession() (Session, *Error) {
 	return session, nil
 }
 
-// Initializes a DRMAA session. If contact string is "" 
+// Initializes a DRMAA session. If contact string is ""
 // a new session is created otherwise an existing session
-// is connected. 
+// is connected.
 func (s *Session) Init(contactString string) *Error {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
@@ -441,7 +441,7 @@ func (s *Session) Init(contactString string) *Error {
 	}
 
 	if errNumber != C.DRMAA_ERRNO_SUCCESS && diag != nil {
-		// convert ERROR string back 
+		// convert ERROR string back
 		s.initialized = false
 		ce := makeError(C.GoString(diag), errorId[errNumber])
 		return &ce
@@ -464,7 +464,7 @@ func (s *Session) Exit() *Error {
 	return nil
 }
 
-// Allocates a new job template. 
+// Allocates a new job template.
 func (s *Session) AllocateJobTemplate() (jt JobTemplate, err *Error) {
 	if s.initialized == false {
 		// error, need a connection (active session)
@@ -637,7 +637,7 @@ func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err *Error
 
 	// out
 	cstat := C.int(0)
-	var crusage *C.struct_drmaa_attr_values_t
+	var crusage *C.struct_drmaa_attr_values_s
 
 	if errNumber := C.drmaa_wait(C.CString(jobId), job_id_out, jobnameSize, &cstat,
 		C.long(timeout), &crusage, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
@@ -1268,4 +1268,3 @@ func (jt *JobTemplate) SetSoftRunDurationLimit(limit time.Duration) *Error {
 func (jt *JobTemplate) SoftRunDurationLimit() (deadlineTime time.Duration, err *Error) {
 	return jt.parseDuration(C.DRMAA_DURATION_SLIMIT)
 }
-
