@@ -913,11 +913,9 @@ func (jt *JobTemplate) SetArgs(args []string) *Error {
 	if jt.jt != nil {
 		drmaa_v_argv := C.CString(C.DRMAA_V_ARGV)
 		return setVectorAttributes(jt, drmaa_v_argv, args)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
-		return &ce
 	}
-	return nil
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
+	return &ce
 }
 
 // Set single argument. Simple wrapper for SetArgs([]string{arg}).
@@ -929,22 +927,18 @@ func (jt *JobTemplate) SetEnv(envs []string) *Error {
 	if jt.jt != nil {
 		drmaa_v_env := C.CString(C.DRMAA_V_ENV)
 		return setVectorAttributes(jt, drmaa_v_env, envs)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
-		return &ce
 	}
-	return nil
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
+	return &ce
 }
 
 func (jt *JobTemplate) SetEmail(emails []string) *Error {
 	if jt.jt != nil {
 		drmaa_v_email := C.CString(C.DRMAA_V_EMAIL)
 		return setVectorAttributes(jt, drmaa_v_email, emails)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-		return &ce
 	}
-	return nil
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+	return &ce
 }
 
 // template attributes
@@ -978,11 +972,9 @@ func (jt *JobTemplate) SetWD(dir string) *Error {
 	if jt.jt != nil {
 		drmaa_wd := C.DRMAA_WD
 		return setNameValue(jt.jt, drmaa_wd, dir)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-		return &ce
 	}
-	return nil
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+	return &ce
 }
 
 // Gets the working directory set in the job template
@@ -996,11 +988,9 @@ func (jt *JobTemplate) SetNativeSpecification(native string) *Error {
 	if jt.jt != nil {
 		drmaa_native_specification := C.DRMAA_NATIVE_SPECIFICATION
 		return setNameValue(jt.jt, drmaa_native_specification, native)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-		return &ce
 	}
-	return nil
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+	return &ce
 }
 
 // Gets the native specificatio set in the job template.
@@ -1016,11 +1006,9 @@ func (jt *JobTemplate) SetBlockEmail(blockmail bool) *Error {
 		} else {
 			return setNameValue(jt.jt, drmaa_block_email, "0")
 		}
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-		return &ce
 	}
-	return nil
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+	return &ce
 }
 
 func (jt *JobTemplate) BlockEmail() (bool, *Error) {
@@ -1034,20 +1022,18 @@ func (jt *JobTemplate) BlockEmail() (bool, *Error) {
 	return false, nil
 }
 
-// Sets the earliest job start time for the job.
+// SetStartTime sets the earliest job start time for the job.
 func (jt *JobTemplate) SetStartTime(time time.Time) *Error {
 	if jt.jt != nil {
 		drmaa_start_time := C.DRMAA_START_TIME
 		timeString := fmt.Sprintf("%d", time.Unix())
 		return setNameValue(jt.jt, drmaa_start_time, timeString)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-		return &ce
 	}
-	return nil
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+	return &ce
 }
 
-// Returns the job start time set for the job.
+// StartTime returns the job start time set for the job.
 func (jt *JobTemplate) StartTime() (time.Time, *Error) {
 	if value, err := getStringValue(jt.jt, C.DRMAA_START_TIME); err != nil {
 		var t time.Time
@@ -1067,24 +1053,22 @@ func (jt *JobTemplate) StartTime() (time.Time, *Error) {
 	return t, nil
 }
 
-// Sets the name of the job in the job template.
+// SetJobName sets the name of the job in the job template.
 func (jt *JobTemplate) SetJobName(jobname string) *Error {
 	if jt.jt != nil {
 		drmaa_job_name := C.DRMAA_JOB_NAME
 		return setNameValue(jt.jt, drmaa_job_name, jobname)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-		return &ce
 	}
-	return nil
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+	return &ce
 }
 
-// Returns the name set in the job template.
+// JobName returns the name set in the job template.
 func (jt *JobTemplate) JobName() (string, *Error) {
 	return getStringValue(jt.jt, C.DRMAA_JOB_NAME)
 }
 
-// Sets that the error and output files have to be joined.
+// SetJoinFiles sets that the error and output files have to be joined.
 func (jt *JobTemplate) SetJoinFiles(join bool) *Error {
 	if jt.jt != nil {
 		drmaa_join_files := C.DRMAA_JOIN_FILES
@@ -1100,6 +1084,7 @@ func (jt *JobTemplate) SetJoinFiles(join bool) *Error {
 	return nil
 }
 
+// JoinFiles returns if join files is set in the job template.
 func (jt *JobTemplate) JoinFiles() (bool, *Error) {
 	if val, err := getStringValue(jt.jt, C.DRMAA_JOB_NAME); err != nil {
 		return false, err
@@ -1111,6 +1096,7 @@ func (jt *JobTemplate) JoinFiles() (bool, *Error) {
 	return false, nil
 }
 
+// SetTransferFiles sets the file transfer mode in the job template.
 func (jt *JobTemplate) SetTransferFiles(mode FileTransferMode) *Error {
 	if jt.jt != nil {
 		var ftm string
@@ -1125,14 +1111,12 @@ func (jt *JobTemplate) SetTransferFiles(mode FileTransferMode) *Error {
 		}
 		drmaa_transfer_files := C.DRMAA_TRANSFER_FILES
 		return setNameValue(jt.jt, drmaa_transfer_files, ftm)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-		return &ce
 	}
-	return nil
-
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+	return &ce
 }
 
+// TransferFiles returns the FileTransferModes set in the job template.
 func (jt *JobTemplate) TransferFiles() (FileTransferMode, *Error) {
 	if jt.jt != nil {
 		if val, err := getStringValue(jt.jt, C.DRMAA_TRANSFER_FILES); err != nil {
@@ -1159,7 +1143,7 @@ func (jt *JobTemplate) TransferFiles() (FileTransferMode, *Error) {
 	return ftm, &ce
 }
 
-// Unsupported in Grid Engine.
+// SetDeadlineTime sets deadline time in job template. Unsupported in Grid Engine.
 func (jt *JobTemplate) SetDeadlineTime(deadline time.Duration) *Error {
 	if jt.jt != nil {
 		drmaa_deadline_time := C.DRMAA_DEADLINE_TIME
@@ -1191,49 +1175,44 @@ func (jt *JobTemplate) parseDuration(field string) (defaultDuration time.Duratio
 	return defaultDuration, &ce
 }
 
-// Unsupported in Grid Engine.
+// DeadlineTime returns deadline time. Unsupported in Grid Engine.
 func (jt *JobTemplate) DeadlineTime() (deadlineTime time.Duration, err *Error) {
 	return jt.parseDuration(C.DRMAA_DEADLINE_TIME)
 }
 
-// Sets a hard wall-clock time limit for the job.
+// SetHardWallclockTimeLimit sets a hard wall-clock time limit for the job.
 func (jt *JobTemplate) SetHardWallclockTimeLimit(limit time.Duration) *Error {
 	if jt.jt != nil {
 		drmaa_wct_hlimit := C.DRMAA_WCT_HLIMIT
 		limitString := fmt.Sprintf("%d", int64(limit.Seconds()))
 		return setNameValue(jt.jt, drmaa_wct_hlimit, limitString)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-		return &ce
 	}
-	return nil
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+	return &ce
 }
 
-// Gets the wall-clock time set in the job template.
+// HardWallclockTimeLimit returns the wall-clock time set in the job template.
 func (jt *JobTemplate) HardWallclockTimeLimit() (deadlineTime time.Duration, err *Error) {
 	return jt.parseDuration(C.DRMAA_WCT_HLIMIT)
 }
 
-// Sets a soft wall-clock time limit for the job in the job template.
+// SetSoftWallclockTimeLimit sets a soft wall-clock time limit for the job in the job template.
 func (jt *JobTemplate) SetSoftWallclockTimeLimit(limit time.Duration) *Error {
 	if jt.jt != nil {
 		drmaa_wct_slimit := C.DRMAA_WCT_SLIMIT
 		limitString := fmt.Sprintf("%d", int64(limit.Seconds()))
 		return setNameValue(jt.jt, drmaa_wct_slimit, limitString)
-	} else {
-		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-		return &ce
 	}
-	return nil
-
+	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+	return &ce
 }
 
-// Gets a soft wall-clock time limit for the job set in the job template.
+// SoftWallclockTimeLimit returns the soft wall-clock time limit for the job set in the job template.
 func (jt *JobTemplate) SoftWallclockTimeLimit() (deadlineTime time.Duration, err *Error) {
 	return jt.parseDuration(C.DRMAA_WCT_HLIMIT)
 }
 
-// Sets a hard run-duration limit for the job in the job tempplate.
+// SetHardRunDurationLimit sets a hard run-duration limit for the job in the job tempplate.
 func (jt *JobTemplate) SetHardRunDurationLimit(limit time.Duration) *Error {
 	if jt.jt != nil {
 		drmaa_duration_hlimit := C.DRMAA_DURATION_HLIMIT
@@ -1246,12 +1225,12 @@ func (jt *JobTemplate) SetHardRunDurationLimit(limit time.Duration) *Error {
 	return nil
 }
 
-// Gets the hard run-duration limit for the job in the job template.
+// HardRunDurationLimit returns the hard run-duration limit for the job in the job template.
 func (jt *JobTemplate) HardRunDurationLimit() (deadlineTime time.Duration, err *Error) {
 	return jt.parseDuration(C.DRMAA_DURATION_HLIMIT)
 }
 
-// Sets the soft run duration limit for the job in the job template.
+// SetSoftRunDurationLimit sets the soft run duration limit for the job in the job template.
 func (jt *JobTemplate) SetSoftRunDurationLimit(limit time.Duration) *Error {
 	if jt.jt != nil {
 		drmaa_duration_slimit := C.DRMAA_DURATION_SLIMIT
@@ -1264,7 +1243,7 @@ func (jt *JobTemplate) SetSoftRunDurationLimit(limit time.Duration) *Error {
 	return nil
 }
 
-// Gets teh soft run duration limit set in the job template.
+// SoftRunDurationLimit returns the soft run duration limit set in the job template.
 func (jt *JobTemplate) SoftRunDurationLimit() (deadlineTime time.Duration, err *Error) {
 	return jt.parseDuration(C.DRMAA_DURATION_SLIMIT)
 }
