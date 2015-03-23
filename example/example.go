@@ -35,20 +35,20 @@
 package main
 
 import (
+	"fmt"
 	"github.com/dgruber/drmaa"
 	"github.com/dgruber/drmaa/gestatus"
-	"fmt"
 	"time"
 )
 
 func main() {
 
-   /* create a new DRMAA1 session */
+	/* create a new DRMAA1 session */
 	s, _ := drmaa.MakeSession()
 	defer s.Exit()
 
-   /* submit the sleep 3600 command to the cluster
-      by using DRMAA */
+	/* submit the sleep 3600 command to the cluster
+	   by using DRMAA */
 	jt, _ := s.AllocateJobTemplate()
 
 	jt.SetRemoteCommand("sleep")
@@ -67,7 +67,7 @@ func main() {
 		ps, _ = s.JobPs(jobId)
 	}
 
-   /* get detailed job status (Grid Engine specific) */
+	/* get detailed job status (Grid Engine specific) */
 	jobStatus, err := gestatus.GetJobStatus(&s, jobId)
 
 	if err != nil {
