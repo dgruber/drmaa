@@ -561,7 +561,7 @@ func GetJobStatusById(jobId string) (ijs InternalJobStatus, err error) {
 }
 
 // for use within Go DRMAA (caches results)
-func GetJobStatus(s *drmaa.Session, jobId string) (ijs InternalJobStatus, er *drmaa.Error) {
+func GetJobStatus(s *drmaa.Session, jobId string) (ijs InternalJobStatus, er error) {
 	/* check status of job - could slow down qmaster when having lots of clients.
 	   Grid Engine DRMAA2 implementation will solve this. */
 	pt, err := s.JobPs(jobId)

@@ -70,7 +70,7 @@ func convertQstatJobToJob(qsj private_gestatus.QstatJob) (job Job) {
 	return job
 }
 
-func GetClusterJobs() (clusterjobs ClusterJobs, err *drmaa.Error) {
+func GetClusterJobs() (clusterjobs ClusterJobs, err error) {
 	if cjs, err := private_gestatus.GetClusterJobsStatus(); err == nil {
 		if cjs.JobList != nil {
 			clusterjobs.jobs = cjs.JobList
