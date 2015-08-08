@@ -88,11 +88,16 @@ int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
 */
 import "C"
 
-const version string = "0.5"
+const version string = "0.6"
 
 // default string size
 const stringSize C.size_t = C.DRMAA_ERROR_STRING_BUFFER
 const jobnameSize C.size_t = C.DRMAA_JOBNAME_BUFFER
+
+// Placeholder for output directory when filling out job template.
+const PLACEHOLDER_HOME_DIR string = "$drmaa_hd_ph$"
+const PLACEHOLDER_WORKING_DIR string = "$drmaa_wd_ph$"
+const PLACEHOLDER_TASK_ID string = "$drmaa_incr_ph$"
 
 // Job state according to last query.
 type PsType int
@@ -785,6 +790,35 @@ type JobTemplate struct {
 	jt *C.drmaa_job_template_t
 }
 
+// TODO Args() is a mission method from Job Template
+
+// String implements the Stringer interface for the JobTemplate.
+// Note that this operation is not very efficient since it needs
+// to get all values out of the C object.
+func (jt *JobTemplate) String() string {
+	var s string
+
+	rc, _ := jt.RemoteCommand()
+	jn, _ := jt.JobName()
+	ns, _ := jt.NativeSpecification()
+	op, _ := jt.OutputPath()
+	ip, _ := jt.InputPath()
+	wd, _ := jt.WD()
+	jf, _ := jt.JoinFiles()            // FileTransferMode
+	js, _ := jt.JobSubmissionState()   // SubmissionState
+	st, _ := jt.StartTime()            // time
+	sr, _ := jt.SoftRunDurationLimit() // duration
+	hr, _ := jt.HardRunDurationLimit()
+	ep, _ := jt.ErrorPath()
+	be, _ := jt.BlockEmail()   // bool
+	dl, _ := jt.DeadlineTime() // time
+
+	s = fmt.Sprintf("Remote command: %s\nJob name: %s\nNative specification: %s\nOutput path: %s\nInput path: %s\nWorking directory: %s\nJoin files: %b\nSubmission state: %s\nStart time: %s\nSoft run duration limit: %s\nHard run duration limit: %s\nError path: %s\nBlock email: %b\nDeadline time: %s",
+		rc, jn, ns, op, ip, wd, jf, js, st, sr, hr, ep, be, dl)
+
+	return s
+}
+
 // private JOB TEMPLATE helpers
 func setNameValue(jt *C.drmaa_job_template_t, name string, value string) *Error {
 	diag := C.makeString(stringSize)
@@ -1012,7 +1046,7 @@ func (jt *JobTemplate) SetBlockEmail(blockmail bool) *Error {
 }
 
 func (jt *JobTemplate) BlockEmail() (bool, *Error) {
-	value, err := getStringValue(jt.jt, C.DRMAA_NATIVE_SPECIFICATION)
+	value, err := getStringValue(jt.jt, C.DRMAA_BLOCK_EMAIL)
 	if err != nil {
 		return false, err
 	}
