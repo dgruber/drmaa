@@ -9,6 +9,12 @@ and Torque, but it should work also other resource manager / cluster scheduler.
 The "gestatus" library only works with Grid Engine (some values only available
 on Univa Grid Engine).
 
+Note: Univa Grid Engine 8.3.0 and later added new functions which allows you 
+to submit a job on behalf of another user. This helps creating a DRMAA service
+(like a web portal) which submits jobs. This functionality is available in the
+*UGE83\_sudo* branch: https://github.com/dgruber/drmaa/tree/UGE83_sudo
+The functions are: RunJobsAs(), RunBulkJobsAs(), and ControlAs()
+
 ## Example ##
 
 First download the package:
