@@ -34,13 +34,15 @@
    0.5 - Go DRMAA is now under BSD License (instead in the jail of GPL)!
    0.6 - Smaller issues
    0.7 - Changed *Error results to error. Old implementation is in DRMAA_OLD_ERROR branch.
+   0.7b - Added sudo functionality supported only by Univa Grid Engine. Not DRMAAA specific.
 
-   If you have questions or have problema contact me at info @ gridengine.eu.
+   If you have questions or have problems contact me at info @ gridengine.eu.
 */
 
 package drmaa
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -59,7 +61,17 @@ import (
  #include <stdio.h>
  #include <stdlib.h>
  #include <stddef.h>
+ #include <string.h>
  #include "drmaa.h"
+
+static drmaa_sudo_t * makeSudo(char *uname, char *gname, long uid, long gid) {
+	drmaa_sudo_t * sudo = (drmaa_sudo_t *)calloc(sizeof(drmaa_sudo_t), 1);
+	strncpy(sudo->username, uname, strlen(uname) + 1);
+	strncpy(sudo->groupname, gname, strlen(gname) + 1);
+	sudo->uid = (uid_t) uid;
+	sudo->gid = (gid_t) gid;
+	return sudo;
+}
 
 static char* makeString(size_t size) {
    return calloc(sizeof(char), size);
@@ -90,7 +102,7 @@ int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
 */
 import "C"
 
-const version string = "0.7"
+const version string = "0.7_sudo"
 
 // default string size
 const stringSize C.size_t = C.DRMAA_ERROR_STRING_BUFFER
@@ -281,6 +293,16 @@ var internalError = map[ErrorId]C.int{
 	ExitTimeout:                    C.DRMAA_ERRNO_EXIT_TIMEOUT,
 	NoRusage:                       C.DRMAA_ERRNO_NO_RUSAGE,
 	NoMoreElements:                 C.DRMAA_ERRNO_NO_MORE_ELEMENTS,
+}
+
+// Sudo is a sudoers requrest in order to submit a job on behalf
+// of another user. This is not part of the DRMAA spec but it is
+// included in Univa Grid Engine's DRMAA implementation since 8.3 FCS.
+type Sudo struct {
+	Username  string
+	Groupname string
+	UID       int
+	GID       int
 }
 
 // File transfer mode struct.
@@ -514,6 +536,42 @@ func (s *Session) DeleteJobTemplate(jt *JobTemplate) error {
 	return nil
 }
 
+func sudoToC(delegate Sudo) *C.drmaa_sudo_t {
+	if len(delegate.Username) <= 128 && len(delegate.Groupname) <= 128 {
+		uname := C.CString(delegate.Username)
+		defer C.free(unsafe.Pointer(uname))
+		gname := C.CString(delegate.Groupname)
+		defer C.free(unsafe.Pointer(gname))
+		return C.makeSudo(uname, gname, C.long(delegate.UID), C.long(delegate.GID))
+	}
+	return nil
+}
+
+// RunJobAs submits a job in a (initialized) session to the cluster scheduler
+// and executes the job as the user given by the Sudo structure. Note that
+// this might not be allowed when the user has not the priviledges in the
+// DRM. This is not a DRMAA standardized function!
+func (s *Session) RunJobAs(delegate Sudo, jt *JobTemplate) (string, error) {
+	jobId := C.makeString(jobnameSize)
+	defer C.free(unsafe.Pointer(jobId))
+
+	diag := C.makeString(stringSize)
+	defer C.free(unsafe.Pointer(diag))
+
+	as := sudoToC(delegate)
+	if as == nil {
+		return "", errors.New("Couldn't convert sudo request.")
+	}
+	defer C.free(unsafe.Pointer(as))
+	errNumber := C.drmaa_run_job_as(as, jobId, jobnameSize, jt.jt, diag, stringSize)
+
+	if errNumber != C.DRMAA_ERRNO_SUCCESS && diag != nil {
+		ce := makeError(C.GoString(diag), errorId[errNumber])
+		return "", &ce
+	}
+	return C.GoString(jobId), nil
+}
+
 // RunJob submits a job in a (initialized) session to the cluster scheduler.
 func (s *Session) RunJob(jt *JobTemplate) (string, error) {
 	jobId := C.makeString(jobnameSize)
@@ -529,6 +587,38 @@ func (s *Session) RunJob(jt *JobTemplate) (string, error) {
 		return "", &ce
 	}
 	return C.GoString(jobId), nil
+}
+
+// RunBulkJobsAs submits a job as an array job on behalf of the user
+// given by the Sudo structure. Note that this is not
+func (s *Session) RunBulkJobsAs(delegate Sudo, jt *JobTemplate, start, end, incr int) ([]string, error) {
+	var ids *C.drmaa_job_ids_t
+	jobId := C.makeString(jobnameSize)
+	defer C.free(unsafe.Pointer(jobId))
+
+	diag := C.makeString(stringSize)
+	defer C.free(unsafe.Pointer(diag))
+
+	as := sudoToC(delegate)
+	if as == nil {
+		return nil, errors.New("Could not create sudo structure.")
+	}
+	defer C.free(unsafe.Pointer(as))
+	errNumber := C.drmaa_run_bulk_jobs_as(as, &ids, jt.jt, C.int(start), C.int(end), C.int(incr),
+		diag, stringSize)
+
+	if errNumber != C.DRMAA_ERRNO_SUCCESS && diag != nil {
+		ce := makeError(C.GoString(diag), errorId[errNumber])
+		return nil, &ce
+	}
+
+	// collect job ids
+	var jobIds []string
+	for C.drmaa_get_next_job_id(ids, jobId, C.DRMAA_JOBNAME_BUFFER) == C.DRMAA_ERRNO_SUCCESS {
+		jobIds = append(jobIds, C.GoString(jobId))
+	}
+
+	return jobIds, nil
 }
 
 // RunBulkJobs submits a job as an array job.
@@ -555,6 +645,44 @@ func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, 
 	}
 
 	return jobIds, nil
+}
+
+// ControlAs sends a job modification request, i.e. terminates, suspends,
+// resumes a job or sets it in a the hold state or release it from the
+// job hold state. The given Sudo structure will make the call as the
+// encoded user when allowed.
+func (s *Session) ControlAs(delegate Sudo, jobId string, action controlType) error {
+	diag := C.makeString(stringSize)
+	defer C.free(unsafe.Pointer(diag))
+	var ca C.int
+
+	switch action {
+	case Terminate:
+		ca = C.DRMAA_CONTROL_TERMINATE
+	case Suspend:
+		ca = C.DRMAA_CONTROL_SUSPEND
+	case Resume:
+		ca = C.DRMAA_CONTROL_RESUME
+	case Hold:
+		ca = C.DRMAA_CONTROL_HOLD
+	case Release:
+		ca = C.DRMAA_CONTROL_RELEASE
+	}
+
+	as := sudoToC(delegate)
+	if as == nil {
+		return errors.New("Could not create sudo structure.")
+	}
+	defer C.free(unsafe.Pointer(as))
+
+	id := C.CString(jobId)
+	defer C.free(unsafe.Pointer(id))
+
+	if errNumber := C.drmaa_control_as(as, id, ca, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
+		ce := makeError(C.GoString(diag), errorId[errNumber])
+		return &ce
+	}
+	return nil
 }
 
 // Control sends a job modification request, i.e. terminates, suspends,
