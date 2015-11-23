@@ -878,7 +878,8 @@ func getStringValue(jt *C.drmaa_job_template_t, name string) (string, error) {
 
 // JOB TEMPLATE methods
 
-// Sets the name of the binary to start in the job template.
+// SetRemoteCommand sets the path or the name of the binary to be started
+// as a job in the job template.
 func (jt *JobTemplate) SetRemoteCommand(cmd string) error {
 	if jt.jt != nil {
 		return setNameValue(jt.jt, C.DRMAA_REMOTE_COMMAND, cmd)
@@ -887,12 +888,15 @@ func (jt *JobTemplate) SetRemoteCommand(cmd string) error {
 	return &ce
 }
 
-// Returns the currently set binary.
+// RemoteCommand returns the currently set binary which is going to be
+// executed from the job template.
 func (jt *JobTemplate) RemoteCommand() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_REMOTE_COMMAND)
 }
 
-// Sets the input path of the remote command in the job template.
+// SetInputPath sets the input file which the job gets
+// set when it is executed. The content of the file is
+// forwarded as STDIN to the job.
 func (jt *JobTemplate) SetInputPath(path string) error {
 	if jt.jt != nil {
 		return setNameValue(jt.jt, C.DRMAA_INPUT_PATH, path)
@@ -901,11 +905,15 @@ func (jt *JobTemplate) SetInputPath(path string) error {
 	return &ce
 }
 
-// Returns the set input path ot the remote command in the job template.
+// InputPath returns the input file of the remote command set
+// in the job template.
 func (jt *JobTemplate) InputPath() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_INPUT_PATH)
 }
 
+// SetOuputPath sets the path to a directory or a file which is
+// used as output file or directory. Everything the job writes
+// to standard output (stdout) is written in that file.
 func (jt *JobTemplate) SetOutputPath(path string) error {
 	if jt.jt != nil {
 		return setNameValue(jt.jt, C.DRMAA_OUTPUT_PATH, path)
@@ -914,10 +922,14 @@ func (jt *JobTemplate) SetOutputPath(path string) error {
 	return &ce
 }
 
+// OutputPath returns the output path set in the job template.
 func (jt *JobTemplate) OutputPath() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_OUTPUT_PATH)
 }
 
+// SetErrorPath sets the path to a directory or a file which is
+// used as error file or directory. Everything the job writes to
+// standard error (stderr) is written in that file.
 func (jt *JobTemplate) SetErrorPath(path string) error {
 	if jt.jt != nil {
 		return setNameValue(jt.jt, C.DRMAA_ERROR_PATH, path)
@@ -926,6 +938,7 @@ func (jt *JobTemplate) SetErrorPath(path string) error {
 	return &ce
 }
 
+// ErrorPath returns the error path set in the job template.
 func (jt *JobTemplate) ErrorPath() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_ERROR_PATH)
 }
@@ -954,6 +967,7 @@ func setVectorAttributes(jt *JobTemplate, name *C.char, args []string) error {
 	return nil
 }
 
+// SetArgs sets the arguments for the job executable in the job template.
 func (jt *JobTemplate) SetArgs(args []string) error {
 	if jt.jt != nil {
 		drmaa_v_argv := C.CString(C.DRMAA_V_ARGV)
@@ -970,8 +984,9 @@ func (jt *JobTemplate) SetArg(arg string) error {
 	return jt.SetArgs([]string{arg})
 }
 
-// DG TODO Arg() is not specified!!!
-
+// SetEnv sets a set of environment variables inherited from the
+// current environment forwarded to the environment of the job
+// when it is executed.
 func (jt *JobTemplate) SetEnv(envs []string) error {
 	if jt.jt != nil {
 		drmaa_v_env := C.CString(C.DRMAA_V_ENV)
@@ -1026,7 +1041,7 @@ func (jt *JobTemplate) JobSubmissionState() (SubmissionState, error) {
 	return ActiveState, nil
 }
 
-// SetWS sets the working directory for the job in the job template.
+// SetWD sets the working directory for the job in the job template.
 func (jt *JobTemplate) SetWD(dir string) error {
 	if jt.jt != nil {
 		drmaa_wd := C.DRMAA_WD
@@ -1052,12 +1067,17 @@ func (jt *JobTemplate) SetNativeSpecification(native string) error {
 	return &ce
 }
 
-// Gets the native specificatio set in the job template.
+// NativeSpecification returns the native specification set i in the job template.
+// The native specification string is used for injecting DRM specific job submission
+// requests to the system.
 func (jt *JobTemplate) NativeSpecification() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_NATIVE_SPECIFICATION)
 }
 
-// SetBlockEmail set the BLOCK_EMAIL in the job template.
+// SetBlockEmail set the DRMAA_BLOCK_EMAIL in the job template. When this is
+// set it overrides any default behavior of the that might send emails when a job
+// reached a specific state. This is used to prevent emails are going to be
+// send.
 func (jt *JobTemplate) SetBlockEmail(blockmail bool) error {
 	if jt.jt != nil {
 		drmaa_block_email := C.DRMAA_BLOCK_EMAIL
@@ -1197,7 +1217,6 @@ func (jt *JobTemplate) TransferFiles() (FileTransferMode, error) {
 			}
 			return ftm, nil
 		}
-
 	}
 	var ftm FileTransferMode
 	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
@@ -1273,7 +1292,7 @@ func (jt *JobTemplate) SoftWallclockTimeLimit() (deadlineTime time.Duration, err
 	return jt.parseDuration(C.DRMAA_WCT_HLIMIT)
 }
 
-// SetHardRunDurationLimit sets a hard run-duration limit for the job in the job tempplate.
+// SetHardRunDurationLimit sets a hard run-time limit for the job in the job tempplate.
 func (jt *JobTemplate) SetHardRunDurationLimit(limit time.Duration) error {
 	if jt.jt != nil {
 		drmaa_duration_hlimit := C.DRMAA_DURATION_HLIMIT
@@ -1286,12 +1305,12 @@ func (jt *JobTemplate) SetHardRunDurationLimit(limit time.Duration) error {
 	return nil
 }
 
-// HardRunDurationLimit returns the hard run-duration limit for the job in the job template.
+// HardRunDurationLimit returns the hard run-time limit for the job in the job template.
 func (jt *JobTemplate) HardRunDurationLimit() (deadlineTime time.Duration, err error) {
 	return jt.parseDuration(C.DRMAA_DURATION_HLIMIT)
 }
 
-// SetSoftRunDurationLimit sets the soft run duration limit for the job in the job template.
+// SetSoftRunDurationLimit sets the soft run-time limit for the job in the job template.
 func (jt *JobTemplate) SetSoftRunDurationLimit(limit time.Duration) error {
 	if jt.jt != nil {
 		drmaa_duration_slimit := C.DRMAA_DURATION_SLIMIT
@@ -1304,7 +1323,7 @@ func (jt *JobTemplate) SetSoftRunDurationLimit(limit time.Duration) error {
 	return nil
 }
 
-// SoftRunDurationLimit returns the soft run duration limit set in the job template.
+// SoftRunDurationLimit returns the soft run-time limit set in the job template.
 func (jt *JobTemplate) SoftRunDurationLimit() (deadlineTime time.Duration, err error) {
 	return jt.parseDuration(C.DRMAA_DURATION_SLIMIT)
 }
