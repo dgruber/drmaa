@@ -3,11 +3,21 @@ go-drmaa
 [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/dgruber/drmaa)
 [![Apache V2 License](http://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/dgruber/drmaa/blob/master/COPYING)
 
-DRMAA job submission library for Go (#golang). Tested with Univa Grid Engine
-and Torque, but it should work also other resource manager / cluster scheduler. 
+This is a job submission library for Go (#golang) which is compatible to 
+the [DRMAA](http://drmaa.org) standard. The Go library is a wrapper around
+the [DRMAA C library implementation](https://www.ogf.org/documents/GFD.198.pdf) provided
+by many distributed resource managers (cluster schedulers).
 
-The "gestatus" library only works with Grid Engine (some values only available
+It is developed by using [Univa Grid Engine](http://www.univa.com). The library
+was tested with Grid Engine and Torque, but it should work also other resource manager / cluster scheduler.
+
+The "gestatus" subpackage only works with Grid Engine (some values are only available
 on Univa Grid Engine).
+
+The DRMAA (Distributed Resource Management Application API) standard is meanwhile
+available in version 2. DRMAA2 provides more functionalities around cluster monitoring
+and job session management. DRMAA and DRMAA2 are not compatible hence it is expected
+that both libraries are co-existing for a while. The Go DRMAA2 can be found [here](https://github.com/dgruber/drmaa2).
 
 Note: Univa Grid Engine 8.3.0 and later added new functions which allows you 
 to submit a job on behalf of another user. This helps creating a DRMAA service
