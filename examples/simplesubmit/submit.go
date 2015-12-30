@@ -1,5 +1,5 @@
 /*
-    Copyright 2013 Daniel Gruber, info@gridengine.eu
+    Copyright 2013, 2015 Daniel Gruber, info@gridengine.eu
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -37,70 +37,58 @@ package main
 import (
 	"fmt"
 	"github.com/dgruber/drmaa"
-	"github.com/dgruber/drmaa/gestatus"
+	"os"
 	"time"
 )
 
 func main() {
-
 	/* create a new DRMAA1 session */
-	s, _ := drmaa.MakeSession()
+	s, errMS := drmaa.MakeSession()
+	if errMS != nil {
+		fmt.Printf("Error during DRMAA session creation: %s\n", errMS)
+		os.Exit(1)
+	}
 	defer s.Exit()
 
-	/* submit the sleep 3600 command to the cluster
-	   by using DRMAA */
-	jt, _ := s.AllocateJobTemplate()
-
-	jt.SetRemoteCommand("sleep")
-	jt.SetArg("3600")
-
-	jobId, _ := s.RunJob(&jt)
-
-	d, _ := time.ParseDuration("500ms")
-
-	/* wait activly until job is running (use blocking call in real apps) */
-	ps, _ := s.JobPs(jobId)
-
-	for ps != drmaa.PsRunning {
-		fmt.Println("status is: ", ps)
-		time.Sleep(d)
-		ps, _ = s.JobPs(jobId)
+	/* submit the sleep 3600 command to the cluster by using DRMAA */
+	jt, errJT := s.AllocateJobTemplate()
+	if errJT != nil {
+		fmt.Printf("Error during allocating a new job template: %s\n", errJT)
+		return
 	}
+	// prevent memory leaks by freeing the allocated C job template */
+	defer s.DeleteJobTemplate(&jt)
 
-	/* get detailed job status (Grid Engine specific) */
-	jobStatus, err := gestatus.GetJobStatus(&s, jobId)
+	// set the application to submit
+	jt.SetRemoteCommand("sleep")
+	jt.SetArg("10")
 
-	if err != nil {
-		fmt.Println(err)
+	jobId, errRun := s.RunJob(&jt)
+	if errRun != nil {
+		fmt.Printf("Error during job submission: %s\n", errRun)
 		return
 	}
 
-	fmt.Printf("Job Name: %s\n", jobStatus.JobName())
-	fmt.Printf("Job Number: %d\n", jobStatus.JobId())
-	fmt.Printf("Job Script: %s\n", jobStatus.JobScript())
-	fmt.Printf("Job Args: %s\n", jobStatus.JobArgs())
-	fmt.Printf("Job Owner: %s\n", jobStatus.JobOwner())
-	fmt.Printf("Job Group: %s\n", jobStatus.JobGroup())
-	fmt.Printf("Job UID: %d\n", jobStatus.JobUID())
-	fmt.Printf("Job GID: %d\n", jobStatus.JobGID())
-	fmt.Printf("Job accounting string: %s\n", jobStatus.JobAccountName())
-	fmt.Printf("Job is now: %t\n", jobStatus.IsImmediateJob())
-	fmt.Printf("Job is binary: %t\n", jobStatus.IsBinaryJob())
-	fmt.Printf("Job has reservation: %t\n", jobStatus.HasReservation())
-	fmt.Printf("Job is array job: %t\n", jobStatus.IsArrayJob())
-	fmt.Printf("Job merges stderr %t\n", jobStatus.JobMergesStderr())
-	fmt.Printf("Job has 'no shell' requested: %t\n", jobStatus.HasNoShell())
-	fmt.Printf("Job has memory binding: %t\n", jobStatus.HasMemoryBinding())
-	fmt.Printf("Job memory binding: %s\n", jobStatus.MemoryBinding())
-	fmt.Printf("Job submission time: %s\n", jobStatus.SubmissionTime())
-	fmt.Printf("Job start time: %s\n", jobStatus.StartTime())
-	fmt.Printf("Job deadline: %s\n", jobStatus.JobDeadline())
-	fmt.Printf("Job mail options: %s\n", jobStatus.MailOptions())
-	fmt.Printf("Job AR: %d\n", jobStatus.AdvanceReservationID())
-	fmt.Printf("Job POSIX priority: %d\n", jobStatus.PosixPriority())
-	fmt.Printf("Job Class Name: %s\n", jobStatus.JobClassName())
-	fmt.Printf("Job Mailing Adresses: %s\n", jobStatus.MailAdresses())
-	fmt.Printf("Job Destination Queue Instance List: %s\n", jobStatus.DestinationQueueInstanceList())
-	fmt.Printf("Job Destination Host List: %s\n", jobStatus.DestinationHostList())
-	fmt.Printf("Job Tasks: %d\n", jobStatus.TasksCount())
+	/* wait activly until job is running (use blocking call in real apps) */
+	ps, errPS := s.JobPs(jobId)
+	if errPS != nil {
+		fmt.Printf("Error during job status query: %s\n", errPS)
+		return
+	}
+
+	for ps != drmaa.PsRunning && errPS == nil {
+		fmt.Println("status is: ", ps)
+		time.Sleep(time.Millisecond * 500)
+		ps, errPS = s.JobPs(jobId)
+	}
+
+	// wait until the job is finished
+	jinfo, errWait := s.Wait(jobId, drmaa.TimeoutWaitForever)
+	if errWait != nil {
+		fmt.Printf("Error during waiting until job %s is finished: %s\n", jobId, errWait)
+		return
+	}
+
+	fmt.Printf("Job exited with exit code: %d\n", jinfo.ExitStatus())
+	fmt.Printf("Resource consumption by the job: %v\n", jinfo.ResourceUsage())
 }
