@@ -45,6 +45,7 @@ For Univa Grid Engine:
    ./build.sh
    cd examples/simplesubmit
    go build
+   export LD_LIBRARY_PATH=$SGE_ROOT/lib/lx-amd64
    ./simplesubmit
 ~~~
 
