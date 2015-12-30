@@ -118,27 +118,27 @@ const PLACEHOLDER_TASK_ID string = "$drmaa_incr_ph$"
 type PsType int
 
 const (
-	// Unknown state
+	// PsUndetermined represents an unknown job state
 	PsUndetermined PsType = iota
-	// Job is queued and eligable to run
+	// PsQueueActive means the job is queued and eligable to run
 	PsQueuedActive
-	// Job is put into an hold state by the system
+	// PsSystemOnHold means the job is put into an hold state by the system
 	PsSystemOnHold
-	// Job is put in the hold state by the user
+	// PsUserOnHold means the job is put in the hold state by the user
 	PsUserOnHold
-	// Job is put in the hold state by the system and by the user
+	// PsUserSystemOnHold means the job is put in the hold state by the system and by the user
 	PsUserSystemOnHold
-	// Job is currently executed
+	// PsRunning means the job is currently executed
 	PsRunning
-	// Job is suspended by the DRM
+	// PsSystemSuspended means the job is suspended by the DRM
 	PsSystemSuspended
-	// Job is suspended by the user
+	// PsUserSuspended means the job is suspended by the user
 	PsUserSuspended
-	// Job is suspended by the DRM and by the user
+	// PsUserSystemSuspended means the job is suspended by the DRM and by the user
 	PsUserSystemSuspended
-	// Job is finished normally
+	// PsDone means the job finished normally
 	PsDone
-	// Job is finished and failed
+	// PsFailed means the job  finished and failed
 	PsFailed
 )
 
@@ -177,42 +177,35 @@ func (pt PsType) String() string {
 type SubmissionState int
 
 const (
+	// HoldState is a job submission state which means the job should not be scheduled.
 	HoldState SubmissionState = iota
+	// ActiveState is a job submission state which means the job is allowed to be scheduled.
 	ActiveState
 )
 
 // Timeout is either a positive number in seconds or one of
 // those constants.
 const (
+	// TimeoutWaitForever is a time value of infinit.
 	TimeoutWaitForever int64 = -1
-	TimeoutNoWait      int64 = 0
+	// TimeoutNoWait is a time value for zero.
+	TimeoutNoWait int64 = 0
 )
 
 // Job controls for session.Control().
 type controlType int
 
 const (
+	// Suspend is a control action for suspending a job (usually sending SIGSTOP).
 	Suspend controlType = iota
+	// Resume is a control action fo resuming a suspended job.
 	Resume
+	// Hold is a control action for preventing that a job is going to be scheduled.
 	Hold
+	// Release is a control action for allowing that a job in hold state is allowed to be scheduled.
 	Release
+	// Terminate is a control action for deleting a job.
 	Terminate
-)
-
-// Job states.
-type jobState int
-
-const (
-	Undetermined jobState = iota
-	QueuedActive
-	SystemOnHold
-	UserOnHold
-	UserSystemOnHold
-	Running
-	SystemSuspended
-	UserSystemSuspended
-	Done
-	Failed
 )
 
 // DRMAA error IDs.
@@ -1389,16 +1382,16 @@ func (jt *JobTemplate) SetDeadlineTime(deadline time.Duration) error {
 // Unsupported in Grid Engine.
 func (jt *JobTemplate) parseDuration(field string) (defaultDuration time.Duration, err error) {
 	if jt != nil && jt.jt != nil {
-		if val, err := getStringValue(jt.jt, field); err != nil {
+		val, err := getStringValue(jt.jt, field)
+		if err != nil {
 			return defaultDuration, err
-		} else {
-			if sec, err := time.ParseDuration(val + "s"); err == nil {
-				return sec, nil
-			}
-			ce := makeError("Couldn't parse duration.", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-			var t time.Duration
-			return t, &ce
 		}
+		if sec, err := time.ParseDuration(val + "s"); err == nil {
+			return sec, nil
+		}
+		ce := makeError("Couldn't parse duration.", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+		var t time.Duration
+		return t, &ce
 	}
 	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
 	return defaultDuration, &ce
