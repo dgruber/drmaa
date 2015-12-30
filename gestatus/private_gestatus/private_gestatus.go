@@ -68,6 +68,16 @@ func getValidJobStatusFromCache(jobId string) (ijs InternalJobStatus, found bool
 	return ijs, false
 }
 
+// Unix converts a time from Epoch to Go time. It checks whether the
+// timestamp is milliseconds or seconds since Epoch.
+func Unix(value, unused int64) time.Time {
+	if value > 631152000000 {
+		// must be millisecond time stamp (ms since Epoch at 1.1.1990)
+		return time.Unix(int64(value/1000), 0)
+	}
+	return time.Unix(value, 0)
+}
+
 type JBEnvElem struct {
 	VA_variable         string `xml:"VA_variable"`
 	VA_value            string `xml:"VA_value"`
@@ -391,11 +401,11 @@ func GetMbind(v *InternalJobStatus) string {
 func GetSubmissionTime(v *InternalJobStatus) time.Time {
 	submissionTime := v.Jobinf.Element.Jb_submission_time
 	st, _ := strconv.Atoi(submissionTime)
-	return time.Unix((int64)(st), 0)
+	return Unix((int64)(st), 0)
 }
 
 func GetExecutionTime(v *InternalJobStatus) time.Time {
-	return time.Unix(v.Jobinf.Element.Jb_execution_time, 0)
+	return Unix(v.Jobinf.Element.Jb_execution_time, 0)
 }
 
 // start time of first task started
@@ -412,7 +422,7 @@ func GetTaskStartTime(v *InternalJobStatus, taskId int) time.Time {
 
 	if taskId >= (size+size82) || taskId < 0 {
 		// error taskId not in range
-		return time.Unix(0, 0)
+		return Unix(0, 0)
 	}
 	// only sublist or sublist82 is set by the XML parser
 	var startTime int64
@@ -421,11 +431,11 @@ func GetTaskStartTime(v *InternalJobStatus, taskId int) time.Time {
 	} else {
 		startTime = v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist82[taskId].JAT_start_time
 	}
-	return time.Unix(startTime, 0)
+	return Unix(startTime, 0)
 }
 
 func GetDeadline(v *InternalJobStatus) time.Time {
-	return time.Unix(v.Jobinf.Element.Jb_deadline, 0)
+	return Unix(v.Jobinf.Element.Jb_deadline, 0)
 }
 
 func GetJobClassName(v *InternalJobStatus) string {
