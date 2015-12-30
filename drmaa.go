@@ -997,7 +997,7 @@ func (jt *JobTemplate) InputPath() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_INPUT_PATH)
 }
 
-// SetOuputPath sets the path to a directory or a file which is
+// SetOutputPath sets the path to a directory or a file which is
 // used as output file or directory. Everything the job writes
 // to standard output (stdout) is written in that file.
 func (jt *JobTemplate) SetOutputPath(path string) error {
@@ -1271,14 +1271,14 @@ func (jt *JobTemplate) SetStartTime(time time.Time) error {
 
 // StartTime returns the job start time set for the job.
 func (jt *JobTemplate) StartTime() (time.Time, error) {
-	if value, err := getStringValue(jt.jt, C.DRMAA_START_TIME); err != nil {
+	value, err := getStringValue(jt.jt, C.DRMAA_START_TIME)
+	if err != nil {
 		var t time.Time
 		return t, err
-	} else {
-		sec, err := strconv.ParseInt(value, 10, 64)
-		if t := time.Unix(sec, 0); err == nil {
-			return t, nil
-		}
+	}
+	sec, errParse := strconv.ParseInt(value, 10, 64)
+	if t := time.Unix(sec, 0); errParse == nil {
+		return t, nil
 	}
 	ce := makeError("Unknown timestamp", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
 	var t time.Time
@@ -1314,12 +1314,12 @@ func (jt *JobTemplate) SetJoinFiles(join bool) error {
 
 // JoinFiles returns if join files is set in the job template.
 func (jt *JobTemplate) JoinFiles() (bool, error) {
-	if val, err := getStringValue(jt.jt, C.DRMAA_JOB_NAME); err != nil {
+	val, err := getStringValue(jt.jt, C.DRMAA_JOB_NAME)
+	if err != nil {
 		return false, err
-	} else {
-		if val == "y" {
-			return true, nil
-		}
+	}
+	if val == "y" {
+		return true, nil
 	}
 	return false, nil
 }
@@ -1346,20 +1346,20 @@ func (jt *JobTemplate) SetTransferFiles(mode FileTransferMode) error {
 // TransferFiles returns the FileTransferModes set in the job template.
 func (jt *JobTemplate) TransferFiles() (FileTransferMode, error) {
 	if jt != nil && jt.jt != nil {
-		if val, err := getStringValue(jt.jt, C.DRMAA_TRANSFER_FILES); err != nil {
+		val, err := getStringValue(jt.jt, C.DRMAA_TRANSFER_FILES)
+		if err != nil {
 			var ftm FileTransferMode
 			return ftm, err
-		} else {
-			var ftm FileTransferMode
-			for _, c := range val {
-				switch string(c) {
-				case "i":
-					ftm.InputStream = true
-				case "o":
-					ftm.OutputStream = true
-				case "e":
-					ftm.ErrorStream = true
-				}
+		}
+		var ftm FileTransferMode
+		for _, c := range val {
+			switch string(c) {
+			case "i":
+				ftm.InputStream = true
+			case "o":
+				ftm.OutputStream = true
+			case "e":
+				ftm.ErrorStream = true
 			}
 			return ftm, nil
 		}
