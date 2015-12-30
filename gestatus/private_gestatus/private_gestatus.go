@@ -575,7 +575,6 @@ func GetJobStatus(s *drmaa.Session, jobId string) (ijs InternalJobStatus, er err
 	/* check status of job - could slow down qmaster when having lots of clients.
 	   Grid Engine DRMAA2 implementation will solve this. */
 	pt, err := s.JobPs(jobId)
-
 	if err != nil {
 		return ijs, err
 	}
@@ -585,7 +584,8 @@ func GetJobStatus(s *drmaa.Session, jobId string) (ijs InternalJobStatus, er err
 		return ijs, &err2
 	}
 
-	if cjs, found := getValidJobStatusFromCache(jobId); found == false {
+	cjs, found := getValidJobStatusFromCache(jobId)
+	if found == false {
 		/* job is not cached yet or outdated - we need to fetch it */
 		//qstat := fmt.Sprint("-xml -j ", jobId)
 		cmd := exec.Command("qstat", "-xml", "-j", jobId)
@@ -597,7 +597,6 @@ func GetJobStatus(s *drmaa.Session, jobId string) (ijs InternalJobStatus, er err
 		}
 
 		js, err := parseXML(out)
-
 		if err != nil {
 			log.Fatal("Could not parse xml output of qstat.")
 			err := makeError("Could not parse XML output of qstat.", drmaa.InternalError)
@@ -606,15 +605,10 @@ func GetJobStatus(s *drmaa.Session, jobId string) (ijs InternalJobStatus, er err
 
 		// Cache job status
 		cachedJobStatus[jobId] = jobStatusCache{time.Now(), js}
-
 		return js, nil
-	} else {
-		/* return cached job status */
-		return cjs, nil
 	}
-
-	/* unreachable */
-	return ijs, nil
+	/* return cached job status */
+	return cjs, nil
 }
 
 /* global job status cache */
