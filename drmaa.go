@@ -105,23 +105,40 @@ const attrnameSize C.size_t = C.DRMAA_ATTR_BUFFER
 
 // Placeholder for output directory when filling out job template.
 const PLACEHOLDER_HOME_DIR string = "$drmaa_hd_ph$"
+
+// Placeholder for the working directory path which can be used in the job template
+// (like in the input or output path specification)
 const PLACEHOLDER_WORKING_DIR string = "$drmaa_wd_ph$"
+
+// Placeholder for the array job task ID which can be used in the job template
+// (like in the input or output path specification)
 const PLACEHOLDER_TASK_ID string = "$drmaa_incr_ph$"
 
-// Job state according to last query.
+// PsType specifies a job state (output of JobPs()).
 type PsType int
 
 const (
+	// Unknown state
 	PsUndetermined PsType = iota
+	// Job is queued and eligable to run
 	PsQueuedActive
+	// Job is put into an hold state by the system
 	PsSystemOnHold
+	// Job is put in the hold state by the user
 	PsUserOnHold
+	// Job is put in the hold state by the system and by the user
 	PsUserSystemOnHold
+	// Job is currently executed
 	PsRunning
+	// Job is suspended by the DRM
 	PsSystemSuspended
+	// Job is suspended by the user
 	PsUserSuspended
+	// Job is suspended by the DRM and by the user
 	PsUserSystemSuspended
+	// Job is finished normally
 	PsDone
+	// Job is finished and failed
 	PsFailed
 )
 
@@ -1169,9 +1186,8 @@ func (jt *JobTemplate) SetJobSubmissionState(state SubmissionState) error {
 	if jt.jt != nil {
 		if state == HoldState {
 			return setNameValue(jt.jt, C.DRMAA_JS_STATE, "drmaa_hold")
-		} else { //if (state == ActiveState) {
-			return setNameValue(jt.jt, C.DRMAA_JS_STATE, "drmaa_active")
-		}
+		} //if (state == ActiveState) {
+		return setNameValue(jt.jt, C.DRMAA_JS_STATE, "drmaa_active")
 	}
 	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
 	return &ce
@@ -1231,9 +1247,8 @@ func (jt *JobTemplate) SetBlockEmail(blockmail bool) error {
 	if jt != nil && jt.jt != nil {
 		if blockmail {
 			return setNameValue(jt.jt, C.DRMAA_BLOCK_EMAIL, "1")
-		} else {
-			return setNameValue(jt.jt, C.DRMAA_BLOCK_EMAIL, "0")
 		}
+		return setNameValue(jt.jt, C.DRMAA_BLOCK_EMAIL, "0")
 	}
 	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
 	return &ce
@@ -1297,9 +1312,8 @@ func (jt *JobTemplate) SetJoinFiles(join bool) error {
 	if jt != nil && jt.jt != nil {
 		if join {
 			return setNameValue(jt.jt, C.DRMAA_JOIN_FILES, "y")
-		} else {
-			return setNameValue(jt.jt, C.DRMAA_JOIN_FILES, "n")
 		}
+		return setNameValue(jt.jt, C.DRMAA_JOIN_FILES, "n")
 	}
 	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
 	return &ce
@@ -1380,11 +1394,10 @@ func (jt *JobTemplate) parseDuration(field string) (defaultDuration time.Duratio
 		} else {
 			if sec, err := time.ParseDuration(val + "s"); err == nil {
 				return sec, nil
-			} else {
-				ce := makeError("Couldn't parse duration.", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
-				var t time.Duration
-				return t, &ce
 			}
+			ce := makeError("Couldn't parse duration.", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
+			var t time.Duration
+			return t, &ce
 		}
 	}
 	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
