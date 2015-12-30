@@ -5,7 +5,7 @@ go-drmaa
 
 This is a job submission library for Go (#golang) which is compatible to 
 the [DRMAA](http://drmaa.org) standard. The Go library is a wrapper around
-the [DRMAA C library implementation](https://www.ogf.org/documents/GFD.198.pdf) provided
+the [DRMAA C library implementation](https://www.ogf.org/documents/GFD.22.pdf) provided
 by many distributed resource managers (cluster schedulers).
 
 It is developed by using [Univa Grid Engine](http://www.univa.com). The library
@@ -43,18 +43,18 @@ For Univa Grid Engine:
 ~~~
    source /path/to/grid/engine/installation/default/settings.sh
    ./build.sh
-   cd example
+   cd examples/simplesubmit
    go build
-   ./example
+   ./simplesubmit
 ~~~
 
 For Torque:
 
 ~~~
    ./build.sh --torque
-   cd example
+   cd examples/simplesubmit
    go build
-   ./example
+   ./simplesubmit
 ~~~
 
 If your Torque drmaa.h header file is not located under /usr/include/torque,
