@@ -103,15 +103,15 @@ const stringSize C.size_t = C.DRMAA_ERROR_STRING_BUFFER
 const jobnameSize C.size_t = C.DRMAA_JOBNAME_BUFFER
 const attrnameSize C.size_t = C.DRMAA_ATTR_BUFFER
 
-// Placeholder for output directory when filling out job template.
+// PLACEHOLDER_HOME_DIR is a placeholder for the user's home directory when filling out job template.
 const PLACEHOLDER_HOME_DIR string = "$drmaa_hd_ph$"
 
-// Placeholder for the working directory path which can be used in the job template
-// (like in the input or output path specification)
+// PLACEHOLDER_WORKING_DIR is a placeholder for the working directory path which can be used in
+// the job template (like in the input or output path specification).
 const PLACEHOLDER_WORKING_DIR string = "$drmaa_wd_ph$"
 
-// Placeholder for the array job task ID which can be used in the job template
-// (like in the input or output path specification)
+// PLACEHOLDER_TASK_ID is a placeholder for the array job task ID which can be used in the job
+// template (like in the input or output path specification).
 const PLACEHOLDER_TASK_ID string = "$drmaa_incr_ph$"
 
 // PsType specifies a job state (output of JobPs()).
@@ -120,7 +120,7 @@ type PsType int
 const (
 	// PsUndetermined represents an unknown job state
 	PsUndetermined PsType = iota
-	// PsQueueActive means the job is queued and eligable to run
+	// PsQueuedActive means the job is queued and eligable to run
 	PsQueuedActive
 	// PsSystemOnHold means the job is put into an hold state by the system
 	PsSystemOnHold
@@ -208,35 +208,61 @@ const (
 	Terminate
 )
 
-// DRMAA error IDs.
+// ErrorId is DRMAA error ID representation type
 type ErrorId int
 
 const (
+	// Success indicates that no errors occured
 	Success ErrorId = iota
+	// InternalError indicates an error within the DRM
 	InternalError
+	// DrmCommunicationFailure indicates a communication problem
 	DrmCommunicationFailure
+	// AuthFailure indication an error during authentification
 	AuthFailure
+	// InvalidArgument indicates a wrong imput parameter or an unsupported method call
 	InvalidArgument
+	// NoActiveSession indicates an error due to a non valid session state
 	NoActiveSession
+	// NoMemory indicates an OOM situation
 	NoMemory
+	// InvalidContactString indicates a wrong contact string
 	InvalidContactString
+	// DefaultContactStringError indicates an error with the contact string
 	DefaultContactStringError
+	// NoDefaultContactStringSelected indicates an error with the contact string
 	NoDefaultContactStringSelected
+	// DrmsInitFailed indicates an error when establishing a connection to the DRM
 	DrmsInitFailed
+	// AlreadyActiveSession indicates an error with an already existing connection
 	AlreadyActiveSession
+	// DrmsExitError indicates an error when shutting down the connection to the DRM
 	DrmsExitError
+	// InvalidAttributeFormat is an attribute format error
 	InvalidAttributeFormat
+	// InvalidAttributeValue is an attribute value error
 	InvalidAttributeValue
+	// ConflictingAttributeValues is a semantic error with conflicting attribute settings
 	ConflictingAttributeValues
+	// TryLater indicates a temporal problem with the DRM
 	TryLater
+	// DeniedByDrm indicates a permission problem
 	DeniedByDrm
+	// InvalidJob indicates a problem with the job or job ID
 	InvalidJob
+	// ResumeInconsistentState indicates a state problem
 	ResumeInconsistentState
+	// SuspendInconsistentState indicates a state problem
 	SuspendInconsistentState
+	// HoldInconsistentState indicates a state problem
 	HoldInconsistentState
+	// ReleaseInconsistentState indicates a state problem
 	ReleaseInconsistentState
+	// ExitTimeout indicates a timeout issue
 	ExitTimeout
+	// NoRusage indicates an issue with resource usage values
 	NoRusage
+	// NoMoreElements indicates that no more elements are available
 	NoMoreElements
 )
 
@@ -310,7 +336,7 @@ type FileTransferMode struct {
 // JobInfo contains all runtime information about a job.
 type JobInfo struct {
 	resourceUsage     map[string]string
-	jobId             string
+	jobID             string
 	hasExited         bool
 	exitStatus        int64
 	hasSignaled       bool
@@ -326,7 +352,7 @@ func (ji *JobInfo) ResourceUsage() map[string]string {
 
 // JobId returns the job id as string.
 func (ji *JobInfo) JobId() string {
-	return ji.jobId
+	return ji.jobID
 }
 
 // HasExited returns if the job has exited.
@@ -476,9 +502,8 @@ func (s *Session) Init(contactString string) error {
 		s.initialized = false
 		ce := makeError(C.GoString(diag), errorId[errNumber])
 		return &ce
-	} else {
-		s.initialized = true
 	}
+	s.initialized = true
 	return nil
 }
 
@@ -595,26 +620,26 @@ func (s *Session) DeleteJobTemplate(jt *JobTemplate) error {
 
 // RunJob submits a job in a (initialized) session to the cluster scheduler.
 func (s *Session) RunJob(jt *JobTemplate) (string, error) {
-	jobId := C.makeString(jobnameSize)
-	defer C.free(unsafe.Pointer(jobId))
+	jobID := C.makeString(jobnameSize)
+	defer C.free(unsafe.Pointer(jobID))
 
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
-	errNumber := C.drmaa_run_job(jobId, jobnameSize, jt.jt, diag, stringSize)
+	errNumber := C.drmaa_run_job(jobID, jobnameSize, jt.jt, diag, stringSize)
 
 	if errNumber != C.DRMAA_ERRNO_SUCCESS && diag != nil {
 		ce := makeError(C.GoString(diag), errorId[errNumber])
 		return "", &ce
 	}
-	return C.GoString(jobId), nil
+	return C.GoString(jobID), nil
 }
 
 // RunBulkJobs submits a job as an array job.
 func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, error) {
 	var ids *C.drmaa_job_ids_t
-	jobId := C.makeString(jobnameSize)
-	defer C.free(unsafe.Pointer(jobId))
+	jobID := C.makeString(jobnameSize)
+	defer C.free(unsafe.Pointer(jobID))
 
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
@@ -629,8 +654,8 @@ func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, 
 
 	// collect job ids
 	var jobIds []string
-	for C.drmaa_get_next_job_id(ids, jobId, C.DRMAA_JOBNAME_BUFFER) == C.DRMAA_ERRNO_SUCCESS {
-		jobIds = append(jobIds, C.GoString(jobId))
+	for C.drmaa_get_next_job_id(ids, jobID, C.DRMAA_JOBNAME_BUFFER) == C.DRMAA_ERRNO_SUCCESS {
+		jobIds = append(jobIds, C.GoString(jobID))
 	}
 
 	return jobIds, nil
@@ -639,7 +664,7 @@ func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, 
 // Control sends a job modification request, i.e. terminates, suspends,
 // resumes a job or sets it in a the hold state or release it from the
 // job hold state.
-func (s *Session) Control(jobId string, action controlType) error {
+func (s *Session) Control(jobID string, action controlType) error {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 	var ca C.int
@@ -657,7 +682,7 @@ func (s *Session) Control(jobId string, action controlType) error {
 		ca = C.DRMAA_CONTROL_RELEASE
 	}
 
-	jobid := C.CString(jobId)
+	jobid := C.CString(jobID)
 	defer C.free(unsafe.Pointer(jobid))
 	if errNumber := C.drmaa_control(jobid, ca, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
 		ce := makeError(C.GoString(diag), errorId[errNumber])
@@ -669,28 +694,28 @@ func (s *Session) Control(jobId string, action controlType) error {
 // make job control more straightforward
 
 // TerminateJob sends a job termination request to the job executor.
-func (s *Session) TerminateJob(jobId string) error {
-	return s.Control(jobId, Terminate)
+func (s *Session) TerminateJob(jobID string) error {
+	return s.Control(jobID, Terminate)
 }
 
 // SuspendJob sends a job suspenion request to the job executor.
-func (s *Session) SuspendJob(jobId string) error {
-	return s.Control(jobId, Suspend)
+func (s *Session) SuspendJob(jobID string) error {
+	return s.Control(jobID, Suspend)
 }
 
 // ResumeJob sends a job resume request to the job executor.
-func (s *Session) ResumeJob(jobId string) error {
-	return s.Control(jobId, Resume)
+func (s *Session) ResumeJob(jobID string) error {
+	return s.Control(jobID, Resume)
 }
 
 // HoldJob put a job into the hold state.
-func (s *Session) HoldJob(jobId string) error {
-	return s.Control(jobId, Hold)
+func (s *Session) HoldJob(jobID string) error {
+	return s.Control(jobID, Hold)
 }
 
 // ReleaseJob removes a hold state from a job.
-func (s *Session) ReleaseJob(jobId string) error {
-	return s.Control(jobId, Release)
+func (s *Session) ReleaseJob(jobID string) error {
+	return s.Control(jobID, Release)
 }
 
 // Synchronize blocks the programm until the given jobs finshed or
@@ -700,14 +725,14 @@ func (s *Session) Synchronize(jobIds []string, timeout int64, dispose bool) erro
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
-	job_ids := C.makeStringArray(C.int(len(jobIds) + 1))
+	jobids := C.makeStringArray(C.int(len(jobIds) + 1))
 
 	for i, jobid := range jobIds {
 		id := C.CString(jobid)
 		defer C.free(unsafe.Pointer(id))
-		C.setString(job_ids, id, C.int(i))
+		C.setString(jobids, id, C.int(i))
 	}
-	C.setString(job_ids, nil, C.int(len(jobIds)))
+	C.setString(jobids, nil, C.int(len(jobIds)))
 
 	var disp C.int
 	if dispose {
@@ -716,7 +741,7 @@ func (s *Session) Synchronize(jobIds []string, timeout int64, dispose bool) erro
 		disp = C.int(0)
 	}
 
-	if errNumber := C.drmaa_synchronize(job_ids, C.long(timeout), disp,
+	if errNumber := C.drmaa_synchronize(jobids, C.long(timeout), disp,
 		diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
 		ce := makeError(C.GoString(diag), errorId[errNumber])
 		return &ce
@@ -727,21 +752,21 @@ func (s *Session) Synchronize(jobIds []string, timeout int64, dispose bool) erro
 
 // Wait blocks until the job left the DRM system or a timeout is reached and
 // returns a JobInfo structure.
-func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err error) {
+func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error) {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
-	job_id_out := C.makeString(jobnameSize)
-	defer C.free(unsafe.Pointer(job_id_out))
+	jobIDOut := C.makeString(jobnameSize)
+	defer C.free(unsafe.Pointer(jobIDOut))
 
 	// out
 	cstat := C.int(0)
 	var crusage *C.struct_drmaa_attr_values_s
 
-	jobid := C.CString(jobId)
+	jobid := C.CString(jobID)
 	defer C.free(unsafe.Pointer(jobid))
 
-	if errNumber := C.drmaa_wait(jobid, job_id_out, jobnameSize, &cstat,
+	if errNumber := C.drmaa_wait(jobid, jobIDOut, jobnameSize, &cstat,
 		C.long(timeout), &crusage, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
 		ce := makeError(C.GoString(diag), errorId[errNumber])
 		return jobinfo, &ce
@@ -811,7 +836,7 @@ func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err error)
 		jobinfo.hasCoreDump = true
 	}
 
-	jobinfo.jobId = C.GoString(job_id_out)
+	jobinfo.jobID = C.GoString(jobIDOut)
 
 	// rusage
 	usageLength := C.int(0)
@@ -1100,9 +1125,9 @@ func getVectorAttribute(jt *JobTemplate, name *C.char) ([]string, error) {
 // SetArgs sets the arguments for the job executable in the job template.
 func (jt *JobTemplate) SetArgs(args []string) error {
 	if jt != nil && jt.jt != nil {
-		drmaa_v_argv := C.CString(C.DRMAA_V_ARGV)
-		//defer C.free(unsafe.Pointer(drmaa_v_argv))
-		return setVectorAttributes(jt, drmaa_v_argv, args)
+		drmaaVArgv := C.CString(C.DRMAA_V_ARGV)
+		defer C.free(unsafe.Pointer(drmaaVArgv))
+		return setVectorAttributes(jt, drmaaVArgv, args)
 	}
 	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
 	return &ce
@@ -1114,9 +1139,9 @@ func (jt *JobTemplate) Args() ([]string, error) {
 		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
 		return nil, &ce
 	}
-	drmaa_v_argv := C.CString(C.DRMAA_V_ARGV)
-	defer C.free(unsafe.Pointer(drmaa_v_argv))
-	return getVectorAttribute(jt, drmaa_v_argv)
+	drmaaVArgv := C.CString(C.DRMAA_V_ARGV)
+	defer C.free(unsafe.Pointer(drmaaVArgv))
+	return getVectorAttribute(jt, drmaaVArgv)
 }
 
 // SetArg sets a single argument. Simple wrapper for SetArgs([]string{arg}).
@@ -1129,9 +1154,9 @@ func (jt *JobTemplate) SetArg(arg string) error {
 // when it is executed.
 func (jt *JobTemplate) SetEnv(envs []string) error {
 	if jt.jt != nil {
-		drmaa_v_env := C.CString(C.DRMAA_V_ENV)
-		defer C.free(unsafe.Pointer(drmaa_v_env))
-		return setVectorAttributes(jt, drmaa_v_env, envs)
+		venv := C.CString(C.DRMAA_V_ENV)
+		defer C.free(unsafe.Pointer(venv))
+		return setVectorAttributes(jt, venv, envs)
 	}
 	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
 	return &ce
@@ -1144,18 +1169,18 @@ func (jt *JobTemplate) Env() ([]string, error) {
 		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
 		return nil, &ce
 	}
-	v_env := C.CString(C.DRMAA_V_ENV)
-	defer C.free(unsafe.Pointer(v_env))
-	return getVectorAttribute(jt, v_env)
+	venv := C.CString(C.DRMAA_V_ENV)
+	defer C.free(unsafe.Pointer(venv))
+	return getVectorAttribute(jt, venv)
 }
 
 // SetEmail sets the emails addresses in the job template used by the
 // cluster scheduler to send emails to.
 func (jt *JobTemplate) SetEmail(emails []string) error {
 	if jt.jt != nil {
-		drmaa_v_email := C.CString(C.DRMAA_V_EMAIL)
-		defer C.free(unsafe.Pointer(drmaa_v_email))
-		return setVectorAttributes(jt, drmaa_v_email, emails)
+		drmaaVEmail := C.CString(C.DRMAA_V_EMAIL)
+		defer C.free(unsafe.Pointer(drmaaVEmail))
+		return setVectorAttributes(jt, drmaaVEmail, emails)
 	}
 	ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_ARGUMENT])
 	return &ce
@@ -1168,9 +1193,9 @@ func (jt *JobTemplate) Email() ([]string, error) {
 		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
 		return nil, &ce
 	}
-	drmaa_v_email := C.CString(C.DRMAA_V_EMAIL)
-	defer C.free(unsafe.Pointer(drmaa_v_email))
-	return getVectorAttribute(jt, drmaa_v_email)
+	drmaaVEmail := C.CString(C.DRMAA_V_EMAIL)
+	defer C.free(unsafe.Pointer(drmaaVEmail))
+	return getVectorAttribute(jt, drmaaVEmail)
 }
 
 // SetJobSubmissionState sets the job submission state (like the hold state)
