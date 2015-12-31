@@ -25,7 +25,7 @@ to submit a job on behalf of another user. This helps creating a DRMAA service
 *UGE83\_sudo* branch: https://github.com/dgruber/drmaa/tree/UGE83_sudo
 The functions are: RunJobsAs(), RunBulkJobsAs(), and ControlAs()
 
-## Example ##
+## Compilation ##
 
 First download the package:
 
@@ -64,4 +64,73 @@ you will have to modify the build.sh script before running it.
 The example program submits a sleep job into the system and prints out detailed
 job information as soon as the job is started.
 
-More examples can be found at http://www.gridengine.eu.
+## Short Introduction in Go DRMAA ##
+
+Go DRMAA applications need to open a DRMAA session before the DRMAA calls
+can be executed. Opening a DRMAA session usually establishes a connection
+to the cluster scheduler (distributed resource manager). Hence if no more
+DRMAA calls are mode the Exit() method of the session must be executed.
+This tears down the connection. When an application does not call the Exit()
+method this can leave a communication handle open on the cluster scheduler
+side (which can take a while while to be removed automatically). It should
+be always avoided not to call Exit(). In Go the **defer** statement can be
+used but note that the function is not executed when an *os.Exit()* call 
+is maded.
+
+Creating a DRMAA session:
+
+    s, err := drmaa.MakeSession()
+
+Usually jobs and job workflows are submitted within DRMAA applications.
+In order to submit a job first a job template needs to be allocated:
+
+    jt, errJT := s.AllocateJobTemplate()
+    if errJT != nil {
+       fmt.Printf("Error during allocating a new job template: %s\n", errJT)
+       return
+    }
+
+Underneath a C job template is allocated which is out-of-scope of the
+Go system. Hence it must be ensured that the job template is deleted
+when it is not used anymore. Also here the Go **defer** statement is useful.
+
+    // prevent memory leaks by freeing the allocated C job template at the end */
+    defer s.DeleteJobTemplate(&jt)
+
+The job template contains the specification of the job, like the command
+to be executed and its parameters. Those can be set by the setter methods
+of the job.
+
+    // set the application to submit
+    jt.SetRemoteCommand("sleep")
+    // set the parameter (use SetArgs() when having more parameters)
+    jt.SetArg("1")
+
+A job can be executed with the session **RunJob()** method. If the same
+command should be executed many times, running it as an job array 
+would make sense. In Grid Engine each instance gets a task ID assigned
+which the job can see in the SGE_TASKID enviornment variable (which 
+is set to **unknown** for normal jobs). This task ID can be used for 
+finding the right data set the job (array job task) needs to process.
+Submitting an array job is done with the **RunBulkJobs()** method.
+
+
+    jobID, errSubmit := s.RunJob(&jt)
+
+    // submitting 1000 instances of the same job
+    jobIDs, errBulkSubmit := s.RunBulkJobs(&jt, 1, 1000, 1)
+
+A job state can also be changed (suspended / resumed / put in hold / deleted):
+
+    errTerm := s.TerminateJob(jobID)
+
+The JobInfo data structure contains the runtime information of the 
+job, like exit status or the amount of used resources (memory / IO / etc.).
+The JobInfo data structure can be get with the **Wait()** method.
+
+    jinfo, errWait := s.Wait(jobID, drmaa.TimeoutWaitForever)
+
+For more details please consult the documentation and the DRMAA 
+standard specifications.
+
+More examples can be found on my blog at http://www.gridengine.eu.
