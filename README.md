@@ -69,13 +69,13 @@ job information as soon as the job is started.
 Go DRMAA applications need to open a DRMAA session before the DRMAA calls
 can be executed. Opening a DRMAA session usually establishes a connection
 to the cluster scheduler (distributed resource manager). Hence if no more
-DRMAA calls are mode the Exit() method of the session must be executed.
+DRMAA calls are made the Exit() method of the session must be executed.
 This tears down the connection. When an application does not call the Exit()
 method this can leave a communication handle open on the cluster scheduler
-side (which can take a while while to be removed automatically). It should
+side (which can take a while to be removed automatically). It should
 be always avoided not to call Exit(). In Go the **defer** statement can be
-used but note that the function is not executed when an *os.Exit()* call 
-is maded.
+used but remember that the function is not executed when an *os.Exit()* call 
+is made.
 
 Creating a DRMAA session:
 
@@ -109,7 +109,7 @@ of the job.
 A job can be executed with the session **RunJob()** method. If the same
 command should be executed many times, running it as an job array 
 would make sense. In Grid Engine each instance gets a task ID assigned
-which the job can see in the SGE_TASKID enviornment variable (which 
+which the job can see in the SGE_TASK_ID enviornment variable (which 
 is set to **unknown** for normal jobs). This task ID can be used for 
 finding the right data set the job (array job task) needs to process.
 Submitting an array job is done with the **RunBulkJobs()** method.
