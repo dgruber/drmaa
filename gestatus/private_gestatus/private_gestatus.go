@@ -172,13 +172,13 @@ type JBBinding struct {
 	BindingElement BNElement `xml:"element"`
 }
 
-// one element of the mail adress list
+// one element of the mail address list
 type MRElement struct {
 	User string `xml:"MR_user"`
 	Host string `xml:"MR_host"`
 }
 
-// list of mail adresses
+// list of mail addresses
 type JBMailList struct {
 	MailElement []MRElement `xml:"element"`
 }

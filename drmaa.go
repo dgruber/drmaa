@@ -120,7 +120,7 @@ type PsType int
 const (
 	// PsUndetermined represents an unknown job state
 	PsUndetermined PsType = iota
-	// PsQueuedActive means the job is queued and eligable to run
+	// PsQueuedActive means the job is queued and eligible to run
 	PsQueuedActive
 	// PsSystemOnHold means the job is put into an hold state by the system
 	PsSystemOnHold
@@ -212,7 +212,7 @@ const (
 type ErrorId int
 
 const (
-	// Success indicates that no errors occured
+	// Success indicates that no errors occurred
 	Success ErrorId = iota
 	// InternalError indicates an error within the DRM
 	InternalError

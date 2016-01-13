@@ -69,7 +69,7 @@ func main() {
 		return
 	}
 
-	/* wait activly until job is running (use blocking call in real apps) */
+	/* wait actively until job is running (use blocking call in real apps) */
 	ps, errPS := s.JobPs(jobID)
 	if errPS != nil {
 		fmt.Printf("Error during job status query: %s\n", errPS)

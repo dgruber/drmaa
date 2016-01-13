@@ -109,7 +109,7 @@ of the job.
 A job can be executed with the session **RunJob()** method. If the same
 command should be executed many times, running it as an job array 
 would make sense. In Grid Engine each instance gets a task ID assigned
-which the job can see in the SGE_TASK_ID enviornment variable (which 
+which the job can see in the SGE_TASK_ID environment variable (which 
 is set to **unknown** for normal jobs). This task ID can be used for 
 finding the right data set the job (array job task) needs to process.
 Submitting an array job is done with the **RunBulkJobs()** method.
