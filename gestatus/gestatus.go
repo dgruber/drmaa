@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 Daniel Gruber, info@gridengine.eu
+   Copyright 2013, 2016 Daniel Gruber, info@gridengine.eu
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,10 +40,12 @@ import (
 	"time"
 )
 
+// ClusterJobs contains all jobs found in the cluster.
 type ClusterJobs struct {
 	jobs []private_gestatus.QstatJob
 }
 
+// Job represents the state of a job and its properties.
 type Job struct {
 	Number    int64
 	Priority  float64
@@ -70,6 +72,9 @@ func convertQstatJobToJob(qsj private_gestatus.QstatJob) (job Job) {
 	return job
 }
 
+// GetClusterJobs performs internally a job status call (qstat)
+// to the cluster to get more detailed information about the job
+// status then what plain DRMAA offers.
 func GetClusterJobs() (clusterjobs ClusterJobs, err error) {
 	if cjs, err := private_gestatus.GetClusterJobsStatus(); err == nil {
 		if cjs.JobList != nil {
@@ -82,6 +87,7 @@ func GetClusterJobs() (clusterjobs ClusterJobs, err error) {
 	return clusterjobs, err
 }
 
+// AllJobs returns a new slice of jobs found in the cluster by qstat.
 func (cjs *ClusterJobs) AllJobs() []Job {
 	if cjs.jobs == nil {
 		return nil
@@ -98,12 +104,15 @@ func (cjs *ClusterJobs) AllJobs() []Job {
 
 // ----------------------------------------------------------------------------
 
+// JobStatus represents fine detailed job status information. It offers
+// more details than the Job struct. The information is collected by calling
+// qstat -j when using Grid Engine.
 type JobStatus struct {
 	/* hide internal job status */
 	js private_gestatus.InternalJobStatus
 }
 
-// Performs qstat -xml -j <jobid> and returns a JobStatus
+// GetJob performs qstat -xml -j <jobid> and returns a JobStatus
 // object for this job.
 func GetJob(jobid string) (jobstat JobStatus, err error) {
 	js, err := private_gestatus.GetJobStatusById(jobid)
@@ -115,11 +124,11 @@ func GetJob(jobid string) (jobstat JobStatus, err error) {
 	return jobstat, nil
 }
 
-// Returns the job status object, which contains all information
+// GetJobStatus returns the job status object, which contains all information
 // about a job. In case of any error it is nil and a drmaa error
 // is returned.
-func GetJobStatus(session *drmaa.Session, jobIds string) (jobstat JobStatus, err error) {
-	js, err := private_gestatus.GetJobStatus(session, jobIds)
+func GetJobStatus(session *drmaa.Session, jobId string) (jobstat JobStatus, err error) {
+	js, err := private_gestatus.GetJobStatus(session, jobId)
 	if err != nil {
 		return jobstat, err
 	}
@@ -130,82 +139,87 @@ func GetJobStatus(session *drmaa.Session, jobIds string) (jobstat JobStatus, err
 
 /* Exported access methods for the JobInfo struct */
 
-/* Returns the job name (given by -N submission option). */
+/* JobName returns the job name (given by -N submission option). */
 func (js *JobStatus) JobName() string {
 	return private_gestatus.GetJobName(&js.js)
 }
 
-/* Returns the Grid Engine job id number. */
-func (js *JobStatus) JobId() int64 {
+/* JobID returns the unique Grid Engine job ID. */
+func (js *JobStatus) JobID() int64 {
 	return private_gestatus.GetJobNumber(&js.js)
 }
 
-/* this is the GE internatl script name which is executed on execd side */
+/* execFileName is the GE internal script name which is executed on execd side */
 func (js *JobStatus) execFileName() string {
 	return private_gestatus.GetExecFileName(&js.js)
 }
 
-/* Returns the job script name as string. */
+/* JobScript returns the job script name as string. */
 func (js *JobStatus) JobScript() string {
 	return private_gestatus.GetScriptFile(&js.js)
 }
 
-/* Returns the job arguments as string slice. */
+/* JobArgs returns the job arguments as string slice. */
 func (js *JobStatus) JobArgs() []string {
 	return private_gestatus.GetJobArgs(&js.js)
 }
 
-/* Get owner of the job as string. */
+/* JobOwner returns the owner of the job as string. */
 func (js *JobStatus) JobOwner() string {
 	return private_gestatus.GetOwner(&js.js)
 }
 
-/* Get ower of the job as Unix UID. */
+/* JobUID returns the ower of the job as Unix UID. */
 func (js *JobStatus) JobUID() int {
 	return private_gestatus.GetUID(&js.js)
 }
 
+// JobGroup returns the primary UNIX group of the job owner as string. */
 func (js *JobStatus) JobGroup() string {
 	return private_gestatus.GetGroup(&js.js)
 }
 
+// JobGID returns the primary UNIX group ID of the job owner as int. */
 func (js *JobStatus) JobGID() int {
 	return private_gestatus.GetGID(&js.js)
 }
 
+// JobAccountName returns the accounting string assigned to the job. /
 func (js *JobStatus) JobAccountName() string {
 	return private_gestatus.GetAccount(&js.js)
 }
 
+// IsImmediateJob returns true in case of an interactive job or a -now y batch job. */
 func (js *JobStatus) IsImmediateJob() bool {
 	return private_gestatus.IsImmediate(&js.js)
 }
 
+// HasReservation return true if the job requested a resource reservation.
 func (js *JobStatus) HasReservation() bool {
 	return private_gestatus.IsReservation(&js.js)
 }
 
-// Returns the group of the job owner.
+// IsBinaryJob returns the group of the job owner.
 func (js *JobStatus) IsBinaryJob() bool {
 	return private_gestatus.IsBinary(&js.js)
 }
 
-// Returns true if the job had requested -shell no.
+// HasNoShell returns true if the job had requested -shell no.
 func (js *JobStatus) HasNoShell() bool {
 	return private_gestatus.IsNoShell(&js.js)
 }
 
-// Returns true in case the job is an array job.
+// IsArrayJob returns true in case the job is an array job.
 func (js *JobStatus) IsArrayJob() bool {
 	return private_gestatus.IsArray(&js.js)
 }
 
-/* Returns true if job merges stderr to stdout. */
+/* JobMergesStderr returns true if job merges stderr to stdout. */
 func (js *JobStatus) JobMergesStderr() bool {
 	return private_gestatus.IsMergeStderr(&js.js)
 }
 
-/* Returns true in case the job has memory binding requested. */
+/* HasMemoryBinding returns true in case the job has memory binding requested. */
 func (js *JobStatus) HasMemoryBinding() bool {
 	if private_gestatus.GetMbind(&js.js) == "no_bind" {
 		return false
@@ -213,17 +227,19 @@ func (js *JobStatus) HasMemoryBinding() bool {
 	return true
 }
 
-/* Memory binding status. */
+/* MemoryBinding returns the status of the actual memory binding done for the processes of the job. */
 func (js *JobStatus) MemoryBinding() string {
 	return private_gestatus.GetMbind(&js.js)
 }
 
-/* Start time of the job. */
+/* StartTime is when the job was dispatched to the execution host in order to start up the processes. */
 func (js *JobStatus) StartTime() time.Time {
 	return private_gestatus.GetStartTime(&js.js)
 }
 
-/* Since how long is the job running. */
+/* RunTime return since how long is the job running. Note that the run-time is dynamically
+ * calculated assuming that the start time stamp in the cluster is in the same time zone
+ * then the actual RunTime() call. */
 func (js *JobStatus) RunTime() time.Duration {
 	if js.StartTime().Unix() != 0 {
 		return time.Since(js.StartTime())
@@ -232,55 +248,61 @@ func (js *JobStatus) RunTime() time.Duration {
 	return d
 }
 
-/* Start time of a specific task of the job (for array jobs). */
+/* TaskStartTime is the start time of a specific task of the job (for array jobs). */
 func (js *JobStatus) TaskStartTime(taskId int) time.Time {
 	return private_gestatus.GetTaskStartTime(&js.js, taskId)
 }
 
-/* End time of the job. ? */
+/* executionTime is the end time of the job. */
 func (js *JobStatus) executionTime() time.Time {
 	return private_gestatus.GetExecutionTime(&js.js)
 }
 
-/* Submission time of the job. */
+/* Submission time is the time when the job was submitted to the cluster. */
 func (js *JobStatus) SubmissionTime() time.Time {
 	return private_gestatus.GetSubmissionTime(&js.js)
 }
 
-/* The deadline of the job if set. */
+/* JobDeadline returns if the job has set a deadline for starting up. */
 func (js *JobStatus) JobDeadline() time.Time {
 	return private_gestatus.GetDeadline(&js.js)
 }
 
-// The POSIX priority the job has requested.
+// PosixPriority returns the POSIX priority the job has requested.
+// The default priority for the POSIX policy is 0 ranging from -1023
+// till 1024. Only adminstrators can set a positive priority.
 func (js *JobStatus) PosixPriority() int {
 	// priority is returned as positiv integer 1024 for 0
 	return private_gestatus.GetPosixPriority(&js.js) - 1024
 }
 
-// The mail options which determines on which event emails
-// about job status change is sent.
+// MailOptions returns the mail options which determines on which event
+// emails about job status change is sent.
 func (js *JobStatus) MailOptions() string {
 	return private_gestatus.GetMailOptions(&js.js)
 }
 
-// The id of the advance reservation the job is running in.
+// AdvanceReservationID returns the ID of the advance reservation the
+// job is running in. Note that this ID has no relationship to the
+// job IDs.
 func (js *JobStatus) AdvanceReservationID() int {
 	return private_gestatus.GetAR(&js.js)
 }
 
-// The name of the requested job class.
+// JobClassName returns the name of the requested job class.
 func (js *JobStatus) JobClassName() string {
 	return private_gestatus.GetJobClassName(&js.js)
 }
 
-// Returns all mail addresses information about the
-// job is sent to, depending on the mailing options.
+// MailAdresses returns all mail addresses the job is sending
+// information about its state.
 func (js *JobStatus) MailAdresses() []string {
 	return private_gestatus.GetMailingAdresses(&js.js)
 }
 
-// Returns hard resource requests as name and value
+// HardRequests returns hard resource requests as name and value
+// pairs. Names are the first slice the values are encoded in the
+// second slice. TODO make a map of it...
 func (js *JobStatus) HardRequests() ([]string, []string) {
 	return private_gestatus.GetHardRequests(&js.js)
 }
@@ -309,51 +331,69 @@ func (js *JobStatus) gdilQueueNames(what string, task int) []string {
 	return qil
 }
 
-// Returns all queue instance names where the job is running.
-// A queue instance contains a host and a queue part, where the
-// job is scheduled to.
+// DestinationQueueInstanceList returns all queue instance names where the job is running.
+// A queue instance contains a host and a "@" queue part, where the job is scheduled to.
 func (js *JobStatus) DestinationQueueInstanceList() []string {
 	return js.gdilQueueNames("QueueName", 0)
 }
 
+// DestinationQueueInstanceListOfTask returns the queue instances of a particular
+// array job task.
 func (js *JobStatus) DestinationQueueInstanceListOfTask(task int) []string {
 	return js.gdilQueueNames("QueueName", task)
 }
 
+// DestinationSlotsList returns a list of slots used on the queue instances.
 func (js *JobStatus) DestinationSlotsList() []string {
 	return js.gdilQueueNames("Slots", 0)
 }
 
-// Returns all host names where the job (the first task in case of array jobs)
-// is running.
+// DestinationHostList returns all host names where the job (the first task
+// in case of array jobs) is running.
 func (js *JobStatus) DestinationHostList() []string {
 	return js.gdilQueueNames("HostName", 0)
 }
 
+// DestinationHostListOfTask returns all hosts a parallel array job
+// task is running on.
 func (js *JobStatus) DestinationHostListOfTask(task int) []string {
 	return js.gdilQueueNames("HostName", task)
 }
 
+// TasksCount retursn the amount of array job tasks an
+// job array consists of.
 func (js *JobStatus) TasksCount() int {
 	return private_gestatus.GetTaskCount(&js.js)
 }
 
+// ParallelEnvironment returns the name of the parallel environment
+// requested by a job.
 func (js *JobStatus) ParallelEnvironment() string {
 	return private_gestatus.GetParallelEnvironmentRequest(&js.js)
 }
 
+// ParallelEnvironmentMin contains the amount of slots requested
+// by a parallel jobs.
 func (js *JobStatus) ParallelEnvironmentMin() int64 {
 	return private_gestatus.GetParallelEnvironmentMin(&js.js)
 }
 
+// ParallelEnvironmentMax returns the maximum amount of slots
+// required by the parallel job. It is equal to ParallelEnvironmentMin()
+// in case of a fixed amount of slots were requested (which is
+// the standard case).
 func (js *JobStatus) ParallelEnvironmentMax() int64 {
 	return private_gestatus.GetParallelEnvironmentMax(&js.js)
 }
 
+// ParallelEnvironmentStep is the step size of a slot range
+// request of a parallel job.
 func (js *JobStatus) ParallelEnvironmentStep() int64 {
 	return private_gestatus.GetParallelEnvironmentStep(&js.js)
 }
 
+// ResourceUsage returns the measurements of resource consumption
+// by the processes of a job.
 func (js *JobStatus) ResourceUsage(task int) ([]string, []string) {
 	return private_gestatus.GetUsageList(&js.js, task)
 }

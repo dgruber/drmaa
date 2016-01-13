@@ -63,14 +63,14 @@ func main() {
 	jt.SetRemoteCommand("sleep")
 	jt.SetArg("10")
 
-	jobId, errRun := s.RunJob(&jt)
+	jobID, errRun := s.RunJob(&jt)
 	if errRun != nil {
 		fmt.Printf("Error during job submission: %s\n", errRun)
 		return
 	}
 
 	/* wait activly until job is running (use blocking call in real apps) */
-	ps, errPS := s.JobPs(jobId)
+	ps, errPS := s.JobPs(jobID)
 	if errPS != nil {
 		fmt.Printf("Error during job status query: %s\n", errPS)
 		return
@@ -79,13 +79,13 @@ func main() {
 	for ps != drmaa.PsRunning && errPS == nil {
 		fmt.Println("status is: ", ps)
 		time.Sleep(time.Millisecond * 500)
-		ps, errPS = s.JobPs(jobId)
+		ps, errPS = s.JobPs(jobID)
 	}
 
 	// wait until the job is finished
-	jinfo, errWait := s.Wait(jobId, drmaa.TimeoutWaitForever)
+	jinfo, errWait := s.Wait(jobID, drmaa.TimeoutWaitForever)
 	if errWait != nil {
-		fmt.Printf("Error during waiting until job %s is finished: %s\n", jobId, errWait)
+		fmt.Printf("Error during waiting until job %s is finished: %s\n", jobID, errWait)
 		return
 	}
 

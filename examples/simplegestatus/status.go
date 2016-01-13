@@ -65,7 +65,7 @@ func main() {
 	// set the argument for the application
 	jt.SetArg("3600")
 
-	jobId, errRun := s.RunJob(&jt)
+	jobID, errRun := s.RunJob(&jt)
 	if errRun != nil {
 		fmt.Printf("Error during job submission: %s\n", errRun)
 		return
@@ -73,7 +73,7 @@ func main() {
 
 	/* wait actively until job is running */
 	for {
-		if ps, errPS := s.JobPs(jobId); errPS == nil {
+		if ps, errPS := s.JobPs(jobID); errPS == nil {
 			fmt.Println("status is: ", ps)
 			if ps == drmaa.PsRunning {
 				break
@@ -86,14 +86,14 @@ func main() {
 	}
 
 	/* get detailed job status (Grid Engine specific) */
-	jobStatus, errStatus := gestatus.GetJobStatus(&s, jobId)
+	jobStatus, errStatus := gestatus.GetJobStatus(&s, jobID)
 	if errStatus != nil {
 		fmt.Printf("Error during getting Grid Engine job status: %s\n", errStatus)
 		return
 	}
 
 	fmt.Printf("Job Name: %s\n", jobStatus.JobName())
-	fmt.Printf("Job Number: %d\n", jobStatus.JobId())
+	fmt.Printf("Job Number: %d\n", jobStatus.JobID())
 	fmt.Printf("Job Script: %s\n", jobStatus.JobScript())
 	fmt.Printf("Job Args: %s\n", jobStatus.JobArgs())
 	fmt.Printf("Job Owner: %s\n", jobStatus.JobOwner())
