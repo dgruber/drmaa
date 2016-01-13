@@ -79,10 +79,8 @@ func GetClusterJobs() (clusterjobs ClusterJobs, err error) {
 	if cjs, err := private_gestatus.GetClusterJobsStatus(); err == nil {
 		if cjs.JobList != nil {
 			clusterjobs.jobs = cjs.JobList
-			return clusterjobs, nil
-		} else {
-			return clusterjobs, nil
 		}
+		return clusterjobs, nil
 	}
 	return clusterjobs, err
 }
@@ -93,7 +91,7 @@ func (cjs *ClusterJobs) AllJobs() []Job {
 		return nil
 	}
 
-	jobs := make([]Job, 0)
+	jobs := make([]Job, 0, len(cjs.jobs))
 
 	for _, j := range cjs.jobs {
 		jobs = append(jobs, convertQstatJobToJob(j))
@@ -127,8 +125,8 @@ func GetJob(jobid string) (jobstat JobStatus, err error) {
 // GetJobStatus returns the job status object, which contains all information
 // about a job. In case of any error it is nil and a drmaa error
 // is returned.
-func GetJobStatus(session *drmaa.Session, jobId string) (jobstat JobStatus, err error) {
-	js, err := private_gestatus.GetJobStatus(session, jobId)
+func GetJobStatus(session *drmaa.Session, jobID string) (jobstat JobStatus, err error) {
+	js, err := private_gestatus.GetJobStatus(session, jobID)
 	if err != nil {
 		return jobstat, err
 	}
@@ -139,57 +137,57 @@ func GetJobStatus(session *drmaa.Session, jobId string) (jobstat JobStatus, err 
 
 /* Exported access methods for the JobInfo struct */
 
-/* JobName returns the job name (given by -N submission option). */
+// JobName returns the job name (given by -N submission option).
 func (js *JobStatus) JobName() string {
 	return private_gestatus.GetJobName(&js.js)
 }
 
-/* JobID returns the unique Grid Engine job ID. */
+// JobID returns the unique Grid Engine job ID.
 func (js *JobStatus) JobID() int64 {
 	return private_gestatus.GetJobNumber(&js.js)
 }
 
-/* execFileName is the GE internal script name which is executed on execd side */
+// execFileName is the GE internal script name which is executed on execd side
 func (js *JobStatus) execFileName() string {
 	return private_gestatus.GetExecFileName(&js.js)
 }
 
-/* JobScript returns the job script name as string. */
+// JobScript returns the job script name as string.
 func (js *JobStatus) JobScript() string {
 	return private_gestatus.GetScriptFile(&js.js)
 }
 
-/* JobArgs returns the job arguments as string slice. */
+// JobArgs returns the job arguments as string slice.
 func (js *JobStatus) JobArgs() []string {
 	return private_gestatus.GetJobArgs(&js.js)
 }
 
-/* JobOwner returns the owner of the job as string. */
+// JobOwner returns the owner of the job as string.
 func (js *JobStatus) JobOwner() string {
 	return private_gestatus.GetOwner(&js.js)
 }
 
-/* JobUID returns the ower of the job as Unix UID. */
+// JobUID returns the ower of the job as Unix UID.
 func (js *JobStatus) JobUID() int {
 	return private_gestatus.GetUID(&js.js)
 }
 
-// JobGroup returns the primary UNIX group of the job owner as string. */
+// JobGroup returns the primary UNIX group of the job owner as string.
 func (js *JobStatus) JobGroup() string {
 	return private_gestatus.GetGroup(&js.js)
 }
 
-// JobGID returns the primary UNIX group ID of the job owner as int. */
+// JobGID returns the primary UNIX group ID of the job owner as int.
 func (js *JobStatus) JobGID() int {
 	return private_gestatus.GetGID(&js.js)
 }
 
-// JobAccountName returns the accounting string assigned to the job. /
+// JobAccountName returns the accounting string assigned to the job.
 func (js *JobStatus) JobAccountName() string {
 	return private_gestatus.GetAccount(&js.js)
 }
 
-// IsImmediateJob returns true in case of an interactive job or a -now y batch job. */
+// IsImmediateJob returns true in case of an interactive job or a -now y batch job.
 func (js *JobStatus) IsImmediateJob() bool {
 	return private_gestatus.IsImmediate(&js.js)
 }
@@ -214,12 +212,12 @@ func (js *JobStatus) IsArrayJob() bool {
 	return private_gestatus.IsArray(&js.js)
 }
 
-/* JobMergesStderr returns true if job merges stderr to stdout. */
+// JobMergesStderr returns true if job merges stderr to stdout.
 func (js *JobStatus) JobMergesStderr() bool {
 	return private_gestatus.IsMergeStderr(&js.js)
 }
 
-/* HasMemoryBinding returns true in case the job has memory binding requested. */
+// HasMemoryBinding returns true in case the job has memory binding requested.
 func (js *JobStatus) HasMemoryBinding() bool {
 	if private_gestatus.GetMbind(&js.js) == "no_bind" {
 		return false
@@ -227,19 +225,19 @@ func (js *JobStatus) HasMemoryBinding() bool {
 	return true
 }
 
-/* MemoryBinding returns the status of the actual memory binding done for the processes of the job. */
+// MemoryBinding returns the status of the actual memory binding done for the processes of the job.
 func (js *JobStatus) MemoryBinding() string {
 	return private_gestatus.GetMbind(&js.js)
 }
 
-/* StartTime is when the job was dispatched to the execution host in order to start up the processes. */
+// StartTime is when the job was dispatched to the execution host in order to start up the processes.
 func (js *JobStatus) StartTime() time.Time {
 	return private_gestatus.GetStartTime(&js.js)
 }
 
-/* RunTime return since how long is the job running. Note that the run-time is dynamically
- * calculated assuming that the start time stamp in the cluster is in the same time zone
- * then the actual RunTime() call. */
+// RunTime return since how long is the job running. Note that the run-time is dynamically
+// calculated assuming that the start time stamp in the cluster is in the same time zone
+// then the actual RunTime() call. */
 func (js *JobStatus) RunTime() time.Duration {
 	if js.StartTime().Unix() != 0 {
 		return time.Since(js.StartTime())
@@ -248,22 +246,22 @@ func (js *JobStatus) RunTime() time.Duration {
 	return d
 }
 
-/* TaskStartTime is the start time of a specific task of the job (for array jobs). */
-func (js *JobStatus) TaskStartTime(taskId int) time.Time {
-	return private_gestatus.GetTaskStartTime(&js.js, taskId)
+// TaskStartTime is the start time of a specific task of the job (for array jobs).
+func (js *JobStatus) TaskStartTime(taskID int) time.Time {
+	return private_gestatus.GetTaskStartTime(&js.js, taskID)
 }
 
-/* executionTime is the end time of the job. */
+// executionTime is the end time of the job.
 func (js *JobStatus) executionTime() time.Time {
 	return private_gestatus.GetExecutionTime(&js.js)
 }
 
-/* Submission time is the time when the job was submitted to the cluster. */
+// Submission time is the time when the job was submitted to the cluster.
 func (js *JobStatus) SubmissionTime() time.Time {
 	return private_gestatus.GetSubmissionTime(&js.js)
 }
 
-/* JobDeadline returns if the job has set a deadline for starting up. */
+// JobDeadline returns if the job has set a deadline for starting up.
 func (js *JobStatus) JobDeadline() time.Time {
 	return private_gestatus.GetDeadline(&js.js)
 }
