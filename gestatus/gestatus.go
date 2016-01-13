@@ -268,7 +268,7 @@ func (js *JobStatus) JobDeadline() time.Time {
 
 // PosixPriority returns the POSIX priority the job has requested.
 // The default priority for the POSIX policy is 0 ranging from -1023
-// till 1024. Only adminstrators can set a positive priority.
+// till 1024. Only administrators can set a positive priority.
 func (js *JobStatus) PosixPriority() int {
 	// priority is returned as positiv integer 1024 for 0
 	return private_gestatus.GetPosixPriority(&js.js) - 1024
