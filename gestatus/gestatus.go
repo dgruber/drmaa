@@ -256,7 +256,7 @@ func (js *JobStatus) executionTime() time.Time {
 	return private_gestatus.GetExecutionTime(&js.js)
 }
 
-// Submission time is the time when the job was submitted to the cluster.
+// SubmissionTime is the time when the job was submitted and accepted by the cluster.
 func (js *JobStatus) SubmissionTime() time.Time {
 	return private_gestatus.GetSubmissionTime(&js.js)
 }
