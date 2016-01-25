@@ -637,7 +637,7 @@ func GetMailingAdresses(v *InternalJobStatus) []string {
 	return list
 }
 
-// GetParallelEnvironmentRequest returns if a parallel enviornment
+// GetParallelEnvironmentRequest returns if a parallel environment
 // was requested by the job and hence the job is parallel meaning
 // using multiple cores or even multiple hosts.
 func GetParallelEnvironmentRequest(v *InternalJobStatus) string {
