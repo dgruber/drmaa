@@ -32,7 +32,10 @@
    Note: This works on Univa Grid Engine 8.1 (tested with 8.1.7) and 8.2.
 */
 
-package private_gestatus
+// Package geparser contains functions for parsing Univa Grid Engine
+// qstat -xml output. Note that those functions are not for using
+// directly by the user of the gestatus library.
+package geparser
 
 /* Outsoure the XML parsing to a separate file,
    because the XML structs are exported but should not
@@ -52,12 +55,12 @@ var cachedJobStatus = map[string]jobStatusCache{}
 
 /* TODO reap cache */
 
-func getValidJobStatusFromCache(jobId string) (ijs InternalJobStatus, found bool) {
+func getValidJobStatusFromCache(jobID string) (ijs InternalJobStatus, found bool) {
 	/* only running jobs are cached */
 	if cachedJobStatus == nil {
 		return ijs, false
 	}
-	if cjs, found := cachedJobStatus[jobId]; found {
+	if cjs, found := cachedJobStatus[jobID]; found {
 		/* check if expired (5 seconds) */
 		lastUpdate := time.Since(cjs.lastUpdate)
 		if lastUpdate.Seconds() <= 5 {
@@ -78,220 +81,373 @@ func Unix(value, unused int64) time.Time {
 	return time.Unix(value, 0)
 }
 
+// JBEnvElem is a Grid Engine internal datatype
 type JBEnvElem struct {
-	VA_variable         string `xml:"VA_variable"`
-	VA_value            string `xml:"VA_value"`
-	VA_access_specifier int    `xml:"VA_access_specifier"`
+	// VAvariable is Grid Engine internal data
+	VAvariable string `xml:"VA_variable"`
+	// VAvalue is Grid Engine internal data
+	VAvalue string `xml:"VA_value"`
+	// VAaccessSpecifier is Grid Engine internal data
+	VAaccessSpecifier int `xml:"VA_access_specifier"`
 }
 
+// JBEnvList is a Grid Engine internal datatype
 type JBEnvList struct {
+	// JBEnvElement is Grid Engine internal data
 	JBEnvElement []JBEnvElem `xml:"element"`
 }
 
+// JBJobArgsElement is a Grid Engine internal datatype
 type JBJobArgsElement struct {
-	ST_name             string `xml:"ST_name"`
-	ST_pos              int    `xml:"ST_pos"`
-	ST_access_specifier int    `xml:"ST_access_specifier"`
+	// STname is Grid Engine internal data
+	STname string `xml:"ST_name"`
+	// STpos  is Grid Engine internal data
+	STpos int `xml:"ST_pos"`
+	// STaccessSpecifier is Grid Engine internal data
+	STaccessSpecifier int `xml:"ST_access_specifier"`
 }
 
+// JBJobArgs is a Grid Engine internal datatype
 type JBJobArgs struct {
-	JB_job_args []JBJobArgsElement `xml:"element"`
+	// JBjobArgs is Grid Engine internal data
+	JBjobArgs []JBJobArgsElement `xml:"element"`
 }
 
+// JATScaledElements is a Grid Engine internal datatype
 type JATScaledElements struct {
-	UA_name  string `xml:"UA_name"`
-	UA_value string `xml:"UA_value"`
+	// UAname is Grid Engine internal data
+	UAname string `xml:"UA_name"`
+	// UAvalue  is Grid Engine internal data
+	UAvalue string `xml:"UA_value"`
 }
 
+// JATScaledUsageList is a Grid Engine internal datatype
 // This is 8.1.7 compatible but not 8.2 (use here Events)
 type JATScaledUsageList struct {
-	JAT_scaled82 []JATScaledElements `xml:"Events"`
-	JAT_scaled   []JATScaledElements `xml:"scaled"`
+	// JATscaled82 is Grid Engine internal data
+	JATscaled82 []JATScaledElements `xml:"Events"`
+	// JATscaled is Grid Engine internal data
+	JATscaled []JATScaledElements `xml:"scaled"`
 }
 
+// JGBinding is a Grid Engine internal datatype
 type JGBinding struct {
-	JG_binding_element BNElement `xml:"binding"`
+	// JGbindingElement is Grid Engine internal data
+	JGbindingElement BNElement `xml:"binding"`
 }
 
+// GDILElement is a Grid Engine internal datatype
 type GDILElement struct {
-	JG_qname         string    `xml:"JG_qname"`
-	JG_qversion      string    `xml:"JG_qversion"`
-	JG_qhostname     string    `xml:"JG_qhostname"`
-	JG_slots         int       `xml:"JG_slots"`
-	JG_queue         string    `xml:"JG_queue"`
-	JG_tag_slave_job int       `xml:"JG_tag_slave_job"`
-	JG_ticket        float64   `xml:"JG_ticket"`
-	JG_oticket       float64   `xml:"JG_oticket"`
-	JG_fticket       float64   `xml:"JG_fticket"`
-	JG_sticket       float64   `xml:"JG_sticket"`
-	JG_jcoticket     float64   `xml:"JG_jcoticket"`
-	JG_jcfticket     float64   `xml:"JG_jcfticket"`
-	JG_binding       JGBinding `xml:"JG_binding"`
+	// JGqname is Grid Engine internal data
+	JGqname string `xml:"JG_qname"`
+	// JGqversion is Grid Engine internal data
+	JGqversion string `xml:"JG_qversion"`
+	// JGqhostname is Grid Engine internal data
+	JGqhostname string `xml:"JG_qhostname"`
+	// JGslots is Grid Engine internal data
+	JGslots int `xml:"JG_slots"`
+	// JGqueue is Grid Engine internal data
+	JGqueue string `xml:"JG_queue"`
+	// JGtagslavejob is Grid Engine internal data
+	JGtagslavejob int `xml:"JG_tag_slave_job"`
+	// JGticket is Grid Engine internal data
+	JGticket float64 `xml:"JG_ticket"`
+	// JGoticket is Grid Engine internal data
+	JGoticket float64 `xml:"JG_oticket"`
+	// JGfticket is Grid Engine internal data
+	JGfticket float64 `xml:"JG_fticket"`
+	// JGsticket is Grid Engine internal data
+	JGsticket float64 `xml:"JG_sticket"`
+	// JGjcoticket is Grid Engine internal data
+	JGjcoticket float64 `xml:"JG_jcoticket"`
+	// JGjcfticket is Grid Engine internal data
+	JGjcfticket float64 `xml:"JG_jcfticket"`
+	// JGbinding is Grid Engine internal data
+	JGbinding JGBinding `xml:"JG_binding"`
 }
 
+// JATGDIL is a Grid Engine internal datatype
 type JATGDIL struct {
+	// GdilElement is Grid Engine internal data
 	GdilElement []GDILElement `xml:"element"`
 }
 
+// JBJaSublist is a Grid Engine internal datatype
 type JBJaSublist struct {
-	JAT_status                         int                `xml:"JAT_status"`
-	JAT_task_number                    int                `xml:"JAT_task_number"`
-	JAT_scaled_usage_list              JATScaledUsageList `xml:"JAT_scaled_usage_list"`
-	JAT_start_time                     int64              `xml:"JAT_start_time"`
-	JAT_granted_destin_identifier_list JATGDIL            `xml:"JAT_granted_destin_identifier_list"`
+	// JATstatus is Grid Engine internal data
+	JATstatus int `xml:"JAT_status"`
+	// JATtasknumber is Grid Engine internal data
+	JATtasknumber int `xml:"JAT_task_number"`
+	// JATscaledusagelist is Grid Engine internal data
+	JATscaledusagelist JATScaledUsageList `xml:"JAT_scaled_usage_list"`
+	// JATstarttime is Grid Engine internal data
+	JATstarttime int64 `xml:"JAT_start_time"`
+	// JATgranteddestinidentifierlist is Grid Engine internal data
+	JATgranteddestinidentifierlist JATGDIL `xml:"JAT_granted_destin_identifier_list"`
 }
 
+// JBJaTasks is a Grid Engine internal datatype
 // This is 8.1.7 compatible. In 8.2 it was changed to "element".
 type JBJaTasks struct {
+	// JaTaskSublist82 is Grid Engine internal data
 	JaTaskSublist82 []JBJaSublist `xml:"element"`
-	JaTaskSublist   []JBJaSublist `xml:"ulong_sublist"`
+	// JaTaskSublist is Grid Engine internal data
+	JaTaskSublist []JBJaSublist `xml:"ulong_sublist"`
 }
 
-type TaskIdRange struct {
-	RN_min  int `xml:"RN_min"`
-	RN_max  int `xml:"RN_max"`
-	RN_step int `xml:"RN_step"`
+// TaskidRange is a Grid Engine internal datatype
+type TaskidRange struct {
+	// RNmin is Grid Engine internal data
+	RNmin int `xml:"RN_min"`
+	// RNmax is Grid Engine internal data
+	RNmax int `xml:"RN_max"`
+	// RNstep is Grid Engine internal data
+	RNstep int `xml:"RN_step"`
 }
 
+// JBJAStructure is a Grid Engine internal datatype
 type JBJAStructure struct {
-	Task_id_range TaskIdRange `xml:"task_id_range"`
+	// TaskIDrange is Grid Engine internal data
+	TaskIDrange TaskidRange `xml:"task_id_range"`
 }
 
+// BNElement is a Grid Engine internal datatype
 type BNElement struct {
-	BN_strategy                     string `xml:"BN_strategy"`
-	BN_type                         int    `xml:"BN_type"`
-	BN_parameter_n                  int    `xml:"BN_parameter_n"`
-	BN_parameter_socket             int    `xml:"BN_parameter_socket"`
-	BN_parameter_core_offset        int    `xml:"BN_parameter_core_offset"`
-	BN_parameter_striding_step_size int    `xml:"BN_parameter_striding_step_size"`
-	BN_parameter_explicit           string `xml:"BN_parameter_explicit"`
-	BN_parameter_nlocal             int    `xml:"BN_parameter_nlocal"`
+	// BNstrategy is Grid Engine internal data
+	BNstrategy string `xml:"BN_strategy"`
+	// BNtype is Grid Engine internal data
+	BNtype int `xml:"BN_type"`
+	// BNparameterN is Grid Engine internal data
+	BNparameterN int `xml:"BN_parameter_n"`
+	// BNparameterSocket is Grid Engine internal data
+	BNparameterSocket int `xml:"BN_parameter_socket"`
+	// BNparameterCoreOffset is Grid Engine internal data
+	BNparameterCoreOffset int `xml:"BN_parameter_core_offset"`
+	// BNparameterStridingStepSize is Grid Engine internal data
+	BNparameterStridingStepSize int `xml:"BN_parameter_striding_step_size"`
+	// BNparameterExplicit is Grid Engine internal data
+	BNparameterExplicit string `xml:"BN_parameter_explicit"`
+	// BNparameterNlocal is Grid Engine internal data
+	BNparameterNlocal int `xml:"BN_parameter_nlocal"`
 }
 
+// JBBinding is a Grid Engine internal datatype
 type JBBinding struct {
+	// BindingElement is Grid Engine internal data
 	BindingElement BNElement `xml:"element"`
 }
 
+// MRElement is a Grid Engine internal datatype
 // one element of the mail address list
 type MRElement struct {
+	// User is Grid Engine internal data
 	User string `xml:"MR_user"`
+	// Host is Grid Engine internal data
 	Host string `xml:"MR_host"`
 }
 
+// JBMailList is a Grid Engine internal datatype
 // list of mail addresses
 type JBMailList struct {
+	// MailElement is Grid Engine internal data
 	MailElement []MRElement `xml:"element"`
 }
 
+// JBHard is a Grid Engine internal datatype
 // hard resource request list
 type JBHard struct {
+	// HardResourceRequest is Grid Engine internal data
 	HardResourceRequest []HardElement `xml:"element"`
 }
 
+// HardElement is a Grid Engine internal datatype
 // one element of a hard request -hard -l
 type HardElement struct {
-	Name       string  `xml:"CE_name"`
-	ValType    int     `xml:"CE_valtype"`
-	StringVal  string  `xml:"CE_stringval"`
-	DoubleVal  float64 `xml:"CE_doubleval"`
-	Consumable int     `xml:"CE_consumable"`
+	// Name is Grid Engine internal data
+	Name string `xml:"CE_name"`
+	// ValType is Grid Engine internal data
+	ValType int `xml:"CE_valtype"`
+	// StringVal is Grid Engine internal data
+	StringVal string `xml:"CE_stringval"`
+	// DoubleVal is Grid Engine internal data
+	DoubleVal float64 `xml:"CE_doubleval"`
+	// Consumable is Grid Engine internal data
+	Consumable int `xml:"CE_consumable"`
 }
 
+// RangeElement is a Grid Engine internal datatype
 type RangeElement struct {
-	Rn_min  int64 `xml:"RN_min"`
-	Rn_max  int64 `xml:"RN_max"`
-	Rn_step int64 `xml:"RN_step"`
+	// RnMin is Grid Engine internal data
+	RnMin int64 `xml:"RN_min"`
+	// RnMax is Grid Engine internal data
+	RnMax int64 `xml:"RN_max"`
+	// RnStep is Grid Engine internal data
+	RnStep int64 `xml:"RN_step"`
 }
+
+// JBPERange is a Grid Engine internal datatype
 type JBPERange struct {
+	// Range is Grid Engine internal data
 	Range RangeElement `xml:"element"`
 }
 
+// Element is a Grid Engine internal datatype
 type Element struct {
-	Jb_job_number             int64         `xml:"JB_job_number"`
-	Jb_ar                     int           `xml:"JB_ar"`
-	Jb_exec_file              string        `xml:"JB_exec_file"`
-	Jb_submission_time        string        `xml:"JB_submission_time"`
-	Jb_owner                  string        `xml:"JB_owner"`
-	Jb_uid                    int           `xml:"JB_uid"`
-	Jb_group                  string        `xml:"JB_group"`
-	Jb_gid                    int           `xml:"JB_gid"`
-	Jb_account                string        `xml:"JB_account"`
-	Jb_merge_stderr           bool          `xml:"JB_merge_stderr"`
-	Jb_notify                 string        `xml:"JB_notify"`
-	Jb_job_name               string        `xml:"JB_job_name"`
-	Jb_job_share              int           `xml:"JB_job_share"`
-	Jb_env_list               JBEnvList     `xml:"JB_env_list"`
-	Jb_job_args               JBJobArgs     `xml:"JB_job_args"`
-	Jb_script_file            string        `xml:"JB_script_file"`
-	Jb_ja_tasks               JBJaTasks     `xml:"JB_ja_tasks"`
-	Jb_deadline               int64         `xml:"JB_deadline"`
-	Jb_execution_time         int64         `xml:"JB_execution_time"`
-	Jb_checkpoint_attr        string        `xml:"JB_checkpoint_attr"`
-	Jb_checkpoint_intvl       int           `xml:"JB_checkpoint_interval"`
-	Jb_reserve                bool          `xml:"JB_reserve"`
-	Jb_mail_options           string        `xml:"JB_mail_options"`
-	Jb_priority               int           `xml:"JB_priority"`
-	Jb_restart                int           `xml:"JB_restart"`
-	Jb_verify                 int           `xml:"JB_verify"`
-	Jb_script_size            int           `xml:"JB_script_size"`
-	Jb_verify_suitable_queues int           `xml:"JB_verify_suitable_queues"`
-	Jb_soft_wallclock_gmt     int           `xml:"JB_soft_wallclock_gmt"`
-	Jb_hard_wallclock_gmt     int           `xml:"JB_hard_wallclock_gmt"`
-	Jb_hard_resource_request  JBHard        `xml:"JB_hard_resource_list"`
-	Jb_override_tickets       int           `xml:"JB_override_tickets"`
-	Jb_version                int           `xml:"JB_version"`
-	Jb_ja_structure           JBJAStructure `xml:"JB_ja_structure"`
-	Jb_type                   int           `xml:"JB_type"`
-	Jb_binding                JBBinding     `xml:"JB_binding"`
-	Jb_mbind                  int           `xml:"JB_mbind"`
-	Jb_is_binary              bool          `xml:"JB_is_binary"`
-	Jb_no_shell               bool          `xml:"JB_no_shell"`
-	Jb_is_array               bool          `xml:"JB_is_array"`
-	Jb_is_immediate           bool          `xml:"JB_is_immediate"`
-	Jb_jc_name                string        `xml:"JB_jc_name"`
-	Jb_mail_list              JBMailList    `xml:"JB_mail_list"`
-	Jb_pe                     string        `xml:"JB_pe"`
-	Jb_pe_range               JBPERange     `xml:"JB_pe_range"`
+	// JbJobNumber is Grid Engine internal data
+	JbJobNumber int64 `xml:"JB_job_number"`
+	// JbAr is Grid Engine internal data
+	JbAr int `xml:"JB_ar"`
+	// JbExecFile is Grid Engine internal data
+	JbExecFile string `xml:"JB_exec_file"`
+	// JbSubmissionTime is Grid Engine internal data
+	JbSubmissionTime string `xml:"JB_submission_time"`
+	// JbOwner is Grid Engine internal data
+	JbOwner string `xml:"JB_owner"`
+	// JbUID is Grid Engine internal data
+	JbUID int `xml:"JB_uid"`
+	// JbGroup is Grid Engine internal data
+	JbGroup string `xml:"JB_group"`
+	// JbGid is Grid Engine internal data
+	JbGid int `xml:"JB_gid"`
+	// JbAccount is Grid Engine internal data
+	JbAccount string `xml:"JB_account"`
+	// JbMergeStderr is Grid Engine internal data
+	JbMergeStderr bool `xml:"JB_merge_stderr"`
+	// JbNotify is Grid Engine internal data
+	JbNotify string `xml:"JB_notify"`
+	// JbJobName is Grid Engine internal data
+	JbJobName string `xml:"JB_job_name"`
+	// JbJobShare is Grid Engine internal data
+	JbJobShare int `xml:"JB_job_share"`
+	// JbEnvList is Grid Engine internal data
+	JbEnvList JBEnvList `xml:"JB_env_list"`
+	// JbJobArgs is Grid Engine internal data
+	JbJobArgs JBJobArgs `xml:"JB_job_args"`
+	// JbScriptFile is Grid Engine internal data
+	JbScriptFile string `xml:"JB_script_file"`
+	// JbJaTasks is Grid Engine internal data
+	JbJaTasks JBJaTasks `xml:"JB_ja_tasks"`
+	// JbDeadline is Grid Engine internal data
+	JbDeadline int64 `xml:"JB_deadline"`
+	// JbExecutionTime is Grid Engine internal data
+	JbExecutionTime int64 `xml:"JB_execution_time"`
+	// JbCheckpointAttr is Grid Engine internal data
+	JbCheckpointAttr string `xml:"JB_checkpoint_attr"`
+	// JbCheckpointIntvl is Grid Engine internal data
+	JbCheckpointIntvl int `xml:"JB_checkpoint_interval"`
+	// JbReserve is Grid Engine internal data
+	JbReserve bool `xml:"JB_reserve"`
+	// JbMailOptions is Grid Engine internal data
+	JbMailOptions string `xml:"JB_mail_options"`
+	// JbPriority is Grid Engine internal data
+	JbPriority int `xml:"JB_priority"`
+	// JbRestart is Grid Engine internal data
+	JbRestart int `xml:"JB_restart"`
+	// JbVerify is Grid Engine internal data
+	JbVerify int `xml:"JB_verify"`
+	// JbScriptSize is Grid Engine internal data
+	JbScriptSize int `xml:"JB_script_size"`
+	// JbVerifySuitableQueues is Grid Engine internal data
+	JbVerifySuitableQueues int `xml:"JB_verify_suitable_queues"`
+	// JbSoftWallclockGmt is Grid Engine internal data
+	JbSoftWallclockGmt int `xml:"JB_soft_wallclock_gmt"`
+	// JbHardWallclockGmt is Grid Engine internal data
+	JbHardWallclockGmt int `xml:"JB_hard_wallclock_gmt"`
+	// JbHardResourceRequest is Grid Engine internal data
+	JbHardResourceRequest JBHard `xml:"JB_hard_resource_list"`
+	// JbOverrideTickets is Grid Engine internal data
+	JbOverrideTickets int `xml:"JB_override_tickets"`
+	// JbVersion is Grid Engine internal data
+	JbVersion int `xml:"JB_version"`
+	// JbJaStructure is Grid Engine internal data
+	JbJaStructure JBJAStructure `xml:"JB_ja_structure"`
+	// JbType is Grid Engine internal data
+	JbType int `xml:"JB_type"`
+	// JbBinding is Grid Engine internal data
+	JbBinding JBBinding `xml:"JB_binding"`
+	// JbMbind is Grid Engine internal data
+	JbMbind int `xml:"JB_mbind"`
+	// JbIsBinary is Grid Engine internal data
+	JbIsBinary bool `xml:"JB_is_binary"`
+	// JbNoShell is Grid Engine internal data
+	JbNoShell bool `xml:"JB_no_shell"`
+	// JbIsArray is Grid Engine internal data
+	JbIsArray bool `xml:"JB_is_array"`
+	// JbIsImmediate is Grid Engine internal data
+	JbIsImmediate bool `xml:"JB_is_immediate"`
+	// JbJcName is Grid Engine internal data
+	JbJcName string `xml:"JB_jc_name"`
+	// JbMailList is Grid Engine internal data
+	JbMailList JBMailList `xml:"JB_mail_list"`
+	// JbPe is Grid Engine internal data
+	JbPe string `xml:"JB_pe"`
+	// JbPeRange is Grid Engine internal data
+	JbPeRange JBPERange `xml:"JB_pe_range"`
 }
 
+// DjobInfo is a Grid Engine internal datatype
 type DjobInfo struct {
+	// Element is Grid Engine internal data
 	Element Element `xml:"element"`
 }
 
-// contains scheduler messages and djob_info
+// InternalJobStatus contains scheduler messages and djob_info
 type InternalJobStatus struct {
+	// XMLName is Grid Engine internal data
 	XMLName xml.Name `xml:"detailed_job_info"`
-	Jobinf  DjobInfo `xml:"djob_info"`
+	// Jobinf is Grid Engine internal data
+	Jobinf DjobInfo `xml:"djob_info"`
 }
 
 // -----------------------------------------------
+
+// GDIL is a Grid Engine internal datatype
 type GDIL struct {
-	QueueName        string
-	Slots            int
-	Ticket           float64
-	OverrideTicket   float64
+	// QueueName is Grid Engine internal data
+	QueueName string
+	// Slots is Grid Engine internal data
+	Slots int
+	// Ticket is Grid Engine internal data
+	Ticket float64
+	// OverrideTicket is Grid Engine internal data
+	OverrideTicket float64
+	// FunctionalTicket is Grid Engine internal data
 	FunctionalTicket float64
-	SharetreeTicket  float64
+	// SharetreeTicket is Grid Engine internal data
+	SharetreeTicket float64
 }
 
 // -----------------------------------------------
 // XML of "qstat -xml" without parameters
 // -----------------------------------------------
+
+// QstatJob is a Grid Engine internal datatype
 type QstatJob struct {
-	JB_job_number  int64   `xml:"JB_job_number"`
-	JAT_prio       float64 `xml:"JAT_prio"`
-	JB_name        string  `xml:"JB_name"`
-	JB_owner       string  `xml:"JB_owner"`
-	State          string  `xml:"state"`
-	JAT_start_time string  `xml:"JAT_start_time"`
-	Queue_Name     string  `xml:"queue_name"`
-	JClass_Name    string  `xml:"jclass_name"`
-	Slots          int64   `xml:"slots"`
+	// JBjobnumber is Grid Engine internal data
+	JBjobnumber int64 `xml:"JB_job_number"`
+	// JATprio is Grid Engine internal data
+	JATprio float64 `xml:"JAT_prio"`
+	// JBname is Grid Engine internal data
+	JBname string `xml:"JB_name"`
+	// JBowner is Grid Engine internal data
+	JBowner string `xml:"JB_owner"`
+	// State is Grid Engine internal data
+	State string `xml:"state"`
+	// JATstarttime is Grid Engine internal data
+	JATstarttime string `xml:"JAT_start_time"`
+	// QueueName is Grid Engine internal data
+	QueueName string `xml:"queue_name"`
+	// JClassName is Grid Engine internal data
+	JClassName string `xml:"jclass_name"`
+	// Slots is Grid Engine internal data
+	Slots int64 `xml:"slots"`
 }
 
-// Element describes "qstat -xml"
+// QstatJobInfoList is a Grid Engine internal datatype
 type QstatJobInfoList struct {
+	// XMLName is Grid Engine internal data
 	XMLName xml.Name `xml:"job_info"`
+	// JobList is Grid Engine internal data
 	// contains queue_info and job_info
 	JobList []QstatJob `xml:"queue_info>job_list"`
 }
@@ -300,92 +456,115 @@ type QstatJobInfoList struct {
 // Wrapper functions
 // -----------------------------------------------
 
+// GetJobName return the name of the job.
 func GetJobName(v *InternalJobStatus) string {
-	return v.Jobinf.Element.Jb_job_name
+	return v.Jobinf.Element.JbJobName
 }
 
+// GetJobNumber returns the ID of the job.
 func GetJobNumber(v *InternalJobStatus) int64 {
-	return v.Jobinf.Element.Jb_job_number
+	return v.Jobinf.Element.JbJobNumber
 }
 
+// GetExecFileName returns the command of the job.
 func GetExecFileName(v *InternalJobStatus) string {
-	return v.Jobinf.Element.Jb_exec_file
+	return v.Jobinf.Element.JbExecFile
 }
 
+// GetJobArgs returns the arguments of the remote command.
 func GetJobArgs(v *InternalJobStatus) []string {
-	args := make([]string, len(v.Jobinf.Element.Jb_job_args.JB_job_args))
-	for _, i := range v.Jobinf.Element.Jb_job_args.JB_job_args {
-		args = append(args, i.ST_name)
+	args := make([]string, len(v.Jobinf.Element.JbJobArgs.JBjobArgs))
+	for _, i := range v.Jobinf.Element.JbJobArgs.JBjobArgs {
+		args = append(args, i.STname)
 	}
 	return args
 }
 
+// GetScriptFile return the job script executed.
 func GetScriptFile(v *InternalJobStatus) string {
-	return v.Jobinf.Element.Jb_script_file
+	return v.Jobinf.Element.JbScriptFile
 }
 
+// GetAdvanceReservationID returns the advance reservation ID the job has
+// requested.
 func GetAdvanceReservationID(v *InternalJobStatus) int {
-	return v.Jobinf.Element.Jb_ar
+	return v.Jobinf.Element.JbAr
 }
 
+// GetOwner returns the owner of the job.
 func GetOwner(v *InternalJobStatus) string {
-	return v.Jobinf.Element.Jb_owner
+	return v.Jobinf.Element.JbOwner
 }
 
+// GetGroup returns the UNIX group the owner of the job is member of.
 func GetGroup(v *InternalJobStatus) string {
-	return v.Jobinf.Element.Jb_group
+	return v.Jobinf.Element.JbGroup
 }
 
+// GetUID return the job owner's UNIX user ID.
 func GetUID(v *InternalJobStatus) int {
-	return v.Jobinf.Element.Jb_uid
+	return v.Jobinf.Element.JbUID
 }
 
+// GetGID returns the job owner's UNIX group ID.
 func GetGID(v *InternalJobStatus) int {
-	return v.Jobinf.Element.Jb_gid
+	return v.Jobinf.Element.JbGid
 }
 
+// GetAR returns the advance reservation the job is running in.
 func GetAR(v *InternalJobStatus) int {
-	return v.Jobinf.Element.Jb_ar
+	return v.Jobinf.Element.JbAr
 }
 
+// GetMailOptions returns the mail settings of the job.
 func GetMailOptions(v *InternalJobStatus) string {
-	return v.Jobinf.Element.Jb_mail_options
+	return v.Jobinf.Element.JbMailOptions
 }
 
+// GetPosixPriority returns the posix priority requested or set to the job.
 func GetPosixPriority(v *InternalJobStatus) int {
-	return v.Jobinf.Element.Jb_priority
+	return v.Jobinf.Element.JbPriority
 }
 
+// GetAccount returns the string set for acccounting for the job.
 func GetAccount(v *InternalJobStatus) string {
-	return v.Jobinf.Element.Jb_account
+	return v.Jobinf.Element.JbAccount
 }
 
+// IsImmediate returns if the job is tried to by scheduled just once.
 func IsImmediate(v *InternalJobStatus) bool {
-	return v.Jobinf.Element.Jb_is_immediate
+	return v.Jobinf.Element.JbIsImmediate
 }
 
+// IsReservation returns if the job had a reservation requested.
 func IsReservation(v *InternalJobStatus) bool {
-	return v.Jobinf.Element.Jb_reserve
+	return v.Jobinf.Element.JbReserve
 }
 
+// IsBinary returns if the job is a binary or not.
 func IsBinary(v *InternalJobStatus) bool {
-	return v.Jobinf.Element.Jb_is_binary
+	return v.Jobinf.Element.JbIsBinary
 }
 
+// IsNoShell returns if the job should be started without a starter shell.
 func IsNoShell(v *InternalJobStatus) bool {
-	return v.Jobinf.Element.Jb_no_shell
+	return v.Jobinf.Element.JbNoShell
 }
 
+// IsArray returns if the job is a job array.
 func IsArray(v *InternalJobStatus) bool {
-	return v.Jobinf.Element.Jb_is_array
+	return v.Jobinf.Element.JbIsArray
 }
 
+// IsMergeStderr returns if the stdout and stderr streams are merged by
+// the jobs.
 func IsMergeStderr(v *InternalJobStatus) bool {
-	return v.Jobinf.Element.Jb_merge_stderr
+	return v.Jobinf.Element.JbMergeStderr
 }
 
+// GetMbind returns the memory binding requested by the job.
 func GetMbind(v *InternalJobStatus) string {
-	switch v.Jobinf.Element.Jb_mbind {
+	switch v.Jobinf.Element.JbMbind {
 	case '1':
 		return "no_bind"
 	case '2':
@@ -398,117 +577,133 @@ func GetMbind(v *InternalJobStatus) string {
 	return "no_bind"
 }
 
+// GetSubmissionTime returns when the job was submitted.
 func GetSubmissionTime(v *InternalJobStatus) time.Time {
-	submissionTime := v.Jobinf.Element.Jb_submission_time
+	submissionTime := v.Jobinf.Element.JbSubmissionTime
 	st, _ := strconv.Atoi(submissionTime)
 	return Unix((int64)(st), 0)
 }
 
+// GetExecutionTime returns how long the job was running.
 func GetExecutionTime(v *InternalJobStatus) time.Time {
-	return Unix(v.Jobinf.Element.Jb_execution_time, 0)
+	return Unix(v.Jobinf.Element.JbExecutionTime, 0)
 }
 
-// start time of first task started
+// GetStartTime returns when the first task of the job was started.
 func GetStartTime(v *InternalJobStatus) time.Time {
 	return GetTaskStartTime(v, 0)
 }
 
-// get start time of specific task
-func GetTaskStartTime(v *InternalJobStatus, taskId int) time.Time {
+// GetTaskStartTime returns the start time of specific task of the
+// job
+func GetTaskStartTime(v *InternalJobStatus, taskID int) time.Time {
 	// 8.1
-	size := len(v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist)
+	size := len(v.Jobinf.Element.JbJaTasks.JaTaskSublist)
 	// 8.2. compatibility
-	size82 := len(v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist82)
+	size82 := len(v.Jobinf.Element.JbJaTasks.JaTaskSublist82)
 
-	if taskId >= (size+size82) || taskId < 0 {
+	if taskID >= (size+size82) || taskID < 0 {
 		// error taskId not in range
 		return Unix(0, 0)
 	}
 	// only sublist or sublist82 is set by the XML parser
 	var startTime int64
 	if size > size82 {
-		startTime = v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist[taskId].JAT_start_time
+		startTime = v.Jobinf.Element.JbJaTasks.JaTaskSublist[taskID].JATstarttime
 	} else {
-		startTime = v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist82[taskId].JAT_start_time
+		startTime = v.Jobinf.Element.JbJaTasks.JaTaskSublist82[taskID].JATstarttime
 	}
 	return Unix(startTime, 0)
 }
 
+// GetDeadline returns the deadline time to be scheduled set for the job.
 func GetDeadline(v *InternalJobStatus) time.Time {
-	return Unix(v.Jobinf.Element.Jb_deadline, 0)
+	return Unix(v.Jobinf.Element.JbDeadline, 0)
 }
 
+// GetJobClassName returns the name of the requested job class for the job.
 func GetJobClassName(v *InternalJobStatus) string {
-	return v.Jobinf.Element.Jb_jc_name
+	return v.Jobinf.Element.JbJcName
 }
 
+// GetMailingAdresses returns all mailing addresses which are informed when
+// the state of the job is changing.
 func GetMailingAdresses(v *InternalJobStatus) []string {
 	list := make([]string, 1)
-	for _, el := range v.Jobinf.Element.Jb_mail_list.MailElement {
+	for _, el := range v.Jobinf.Element.JbMailList.MailElement {
 		address := fmt.Sprintf("%s@%s", el.User, el.Host)
 		list = append(list, address)
 	}
 	return list
 }
 
+// GetParallelEnvironmentRequest returns if a parallel enviornment
+// was requested by the job and hence the job is parallel meaning
+// using multiple cores or even multiple hosts.
 func GetParallelEnvironmentRequest(v *InternalJobStatus) string {
-	return v.Jobinf.Element.Jb_pe
+	return v.Jobinf.Element.JbPe
 }
 
+// GetParallelEnvironmentMin returns the amount of slots the parallel
+// application requires.
 func GetParallelEnvironmentMin(v *InternalJobStatus) int64 {
-	return v.Jobinf.Element.Jb_pe_range.Range.Rn_min
+	return v.Jobinf.Element.JbPeRange.Range.RnMin
 }
 
+// GetParallelEnvironmentMax returns the amount of slots the parallel
+// jobs wants at maximum.
 func GetParallelEnvironmentMax(v *InternalJobStatus) int64 {
-	return v.Jobinf.Element.Jb_pe_range.Range.Rn_max
+	return v.Jobinf.Element.JbPeRange.Range.RnMax
 }
 
+// GetParallelEnvironmentStep returns the step size for searching
+// between the minimum and max. amount of slots a job can use.
 func GetParallelEnvironmentStep(v *InternalJobStatus) int64 {
-	return v.Jobinf.Element.Jb_pe_range.Range.Rn_step
+	return v.Jobinf.Element.JbPeRange.Range.RnStep
 }
 
-// Resource usage lists (resource[0] has value value[0])
+// GetUsageList returns the usage lists (resource[0] has value value[0])
 func GetUsageList(v *InternalJobStatus, task int) (resource []string, value []string) {
-	if len(v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist) > task {
+	if len(v.Jobinf.Element.JbJaTasks.JaTaskSublist) > task {
 		var scaled []JATScaledElements
-		if len(v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist[task].JAT_scaled_usage_list.JAT_scaled) <= 0 {
-			scaled = v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist[task].JAT_scaled_usage_list.JAT_scaled82
+		if len(v.Jobinf.Element.JbJaTasks.JaTaskSublist[task].JATscaledusagelist.JATscaled) <= 0 {
+			scaled = v.Jobinf.Element.JbJaTasks.JaTaskSublist[task].JATscaledusagelist.JATscaled82
 		} else {
-			scaled = v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist[task].JAT_scaled_usage_list.JAT_scaled
+			scaled = v.Jobinf.Element.JbJaTasks.JaTaskSublist[task].JATscaledusagelist.JATscaled
 		}
 		for _, v := range scaled {
-			resource = append(resource, v.UA_name)
-			value = append(value, v.UA_value)
+			resource = append(resource, v.UAname)
+			value = append(value, v.UAvalue)
 		}
 	}
 	return resource, value
 }
 
-// Returns pairs of name and value from hard resource requests (-hard -l mem=1G)
-// -> "mem" "1G
+// GetHardRequests pairs of name and value from hard resource requests
+// (-hard -l mem=1G) -> "mem" "1G
 func GetHardRequests(v *InternalJobStatus) (nm []string, val []string) {
-	for _, name := range v.Jobinf.Element.Jb_hard_resource_request.HardResourceRequest {
+	for _, name := range v.Jobinf.Element.JbHardResourceRequest.HardResourceRequest {
 		nm = append(nm, name.Name)
 		val = append(val, name.StringVal)
 	}
 	return nm, val
 }
 
-// Amount of array job tasks
+// GetTaskCount returns the amount of tasks found
 func GetTaskCount(v *InternalJobStatus) int {
-	taskList := v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist
-	taskList82 := v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist82
+	taskList := v.Jobinf.Element.JbJaTasks.JaTaskSublist
+	taskList82 := v.Jobinf.Element.JbJaTasks.JaTaskSublist82
 	return len(taskList) + len(taskList82)
 }
 
-// GDIL: Granted destination identifier list
+// GetGDIL returns an array of granted destination identifiers
 func GetGDIL(v *InternalJobStatus, task int) *[]GDIL {
 	var taskList []JBJaSublist
 
-	taskList = v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist
+	taskList = v.Jobinf.Element.JbJaTasks.JaTaskSublist
 	taskListSize := len(taskList)
 	if taskListSize <= 0 {
-		taskList = v.Jobinf.Element.Jb_ja_tasks.JaTaskSublist82
+		taskList = v.Jobinf.Element.JbJaTasks.JaTaskSublist82
 		taskListSize = len(taskList)
 	}
 
@@ -517,21 +712,22 @@ func GetGDIL(v *InternalJobStatus, task int) *[]GDIL {
 		return nil
 	}
 
-	gdil := make([]GDIL, len(taskList[task].JAT_granted_destin_identifier_list.GdilElement))
+	gdil := make([]GDIL, len(taskList[task].JATgranteddestinidentifierlist.GdilElement))
 
-	for i, gdi := range taskList[task].JAT_granted_destin_identifier_list.GdilElement {
-		gdil[i].FunctionalTicket = gdi.JG_fticket
-		gdil[i].OverrideTicket = gdi.JG_oticket
-		gdil[i].QueueName = gdi.JG_qname
-		gdil[i].SharetreeTicket = gdi.JG_sticket
-		gdil[i].Slots = gdi.JG_slots
-		gdil[i].Ticket = gdi.JG_ticket
+	for i, gdi := range taskList[task].JATgranteddestinidentifierlist.GdilElement {
+		gdil[i].FunctionalTicket = gdi.JGfticket
+		gdil[i].OverrideTicket = gdi.JGoticket
+		gdil[i].QueueName = gdi.JGqname
+		gdil[i].SharetreeTicket = gdi.JGsticket
+		gdil[i].Slots = gdi.JGslots
+		gdil[i].Ticket = gdi.JGticket
 	}
 
 	return &gdil
 }
 
-/* Public functions for library */
+// parseXML parses the qstat -j -xml output and fills
+// the InternalJobStatus struct
 func parseXML(xmlOutput []byte) (ijs InternalJobStatus, err error) {
 	err2 := xml.Unmarshal(xmlOutput, &ijs)
 
@@ -542,27 +738,28 @@ func parseXML(xmlOutput []byte) (ijs InternalJobStatus, err error) {
 	return ijs, nil
 }
 
-/* Parses plain qstat output for all jobs. */
+// parseQstatXML parses the qstat -j -xml output and fills
+// the QstatJobInfoList struct
 func parseQstatXML(xmlOutput []byte) (qjl QstatJobInfoList, err error) {
 	err2 := xml.Unmarshal(xmlOutput, &qjl)
-
 	if err2 != nil {
 		return qjl, fmt.Errorf("XML unmarshall error")
 	}
 	return qjl, nil
 }
 
-// Intenal function which creats an GO DRMAA error.
-func makeError(msg string, id drmaa.ErrorId) drmaa.Error {
+// makeError is a internal function which creates an GO DRMAA error
+func makeError(msg string, id drmaa.ErrorID) drmaa.Error {
 	var ce drmaa.Error
 	ce.Message = msg
-	ce.Id = id
+	ce.ID = id
 	return ce
 }
 
-// Call this when XML job status is parsed without Go drmaa.
-func GetJobStatusById(jobId string) (ijs InternalJobStatus, err error) {
-	cmd := exec.Command("qstat", "-xml", "-j", jobId)
+// GetJobStatusByID makes a qstat -xml -j jobID call and returns
+// the pared result.
+func GetJobStatusByID(jobID string) (ijs InternalJobStatus, err error) {
+	cmd := exec.Command("qstat", "-xml", "-j", jobID)
 	out, err := cmd.Output()
 	if err != nil {
 		return ijs, err
@@ -570,11 +767,12 @@ func GetJobStatusById(jobId string) (ijs InternalJobStatus, err error) {
 	return parseXML(out)
 }
 
-// for use within Go DRMAA (caches results)
-func GetJobStatus(s *drmaa.Session, jobId string) (ijs InternalJobStatus, er error) {
+// GetJobStatus for use within Go DRMAA lib. It first queries the job
+// status cache and if the entry is not found it makes a direct qstat -j -xml call
+func GetJobStatus(s *drmaa.Session, jobID string) (ijs InternalJobStatus, er error) {
 	/* check status of job - could slow down qmaster when having lots of clients.
 	   Grid Engine DRMAA2 implementation will solve this. */
-	pt, err := s.JobPs(jobId)
+	pt, err := s.JobPs(jobID)
 	if err != nil {
 		return ijs, err
 	}
@@ -584,11 +782,11 @@ func GetJobStatus(s *drmaa.Session, jobId string) (ijs InternalJobStatus, er err
 		return ijs, &err2
 	}
 
-	cjs, found := getValidJobStatusFromCache(jobId)
+	cjs, found := getValidJobStatusFromCache(jobID)
 	if found == false {
 		/* job is not cached yet or outdated - we need to fetch it */
 		//qstat := fmt.Sprint("-xml -j ", jobId)
-		cmd := exec.Command("qstat", "-xml", "-j", jobId)
+		cmd := exec.Command("qstat", "-xml", "-j", jobID)
 		out, err := cmd.Output()
 		if err != nil {
 			log.Fatal("Could not execute qstat -xml -j")
@@ -604,23 +802,23 @@ func GetJobStatus(s *drmaa.Session, jobId string) (ijs InternalJobStatus, er err
 		}
 
 		// Cache job status
-		cachedJobStatus[jobId] = jobStatusCache{time.Now(), js}
+		cachedJobStatus[jobID] = jobStatusCache{time.Now(), js}
 		return js, nil
 	}
-	/* return cached job status */
+	// return cached job status
 	return cjs, nil
 }
 
-/* global job status cache */
+// jobStatusCache is the global job status cache used for
+// caching qstat results in order to reduce the actual amount
+// of qstat calls.
 type jobStatusCache struct {
 	lastUpdate time.Time
 	jobStatus  InternalJobStatus
 }
 
-/**
- * Get all information from qstat -xml for all running jobs by a particular
- * user.
- */
+// GetClusterJobsStatus returns all running jobs of a particular user by
+// executing and parsing the qstat -xml output.
 func GetClusterJobsStatus() (ijs QstatJobInfoList, er error) {
 	cmd := exec.Command("qstat", "-xml")
 	out, err := cmd.Output()
@@ -634,6 +832,5 @@ func GetClusterJobsStatus() (ijs QstatJobInfoList, er error) {
 		fmt.Println(err)
 		return ijs, err
 	}
-
 	return qsjil, nil
 }

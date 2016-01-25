@@ -1,5 +1,5 @@
 /*
-    Copyright 2012, 2013, 2014, 2015 Daniel Gruber, info@gridengine.eu
+   Copyright 2012, 2013, 2014, 2015, 2016 Daniel Gruber, info@gridengine.eu
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -24,7 +24,8 @@
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-   This is a Go DRMAA language binding implementation version 0.8.
+   This is a Go DRMAA language binding implementation based on the
+   Open Grid Forum DRMAA C API standard.
 
    Changelog:
    0.1 - First Release: Proof of Concept
@@ -37,10 +38,17 @@
    0.8 - Added jtemplate support queries (GetAttributeNames(),GetVectorAttributeNames()).
          Mem leaks fixed. Added Email() / Args() / Env() for querying
          vector attributes set in the job template.
+   2016/1
+   0.9 - Changed ErrorId to ErrorID and JobId to JobID as well as Placeholder constants.
+         No more interface changes planned. Sorry for that...
 
    If you have any questions contact me at info @ gridengine.eu.
 */
 
+// Package drmaa is a job submission library for job schedulers like Univa Grid Engine.
+// It is based on the open Distributed Resource Management Application API standard
+// (version 1). It requires a C library (libdrmaa.so) usually shipped with a job
+// job scheduler.
 package drmaa
 
 import (
@@ -96,23 +104,23 @@ int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
 */
 import "C"
 
-const version string = "0.8"
+const version string = "0.9"
 
 // default string size
 const stringSize C.size_t = C.DRMAA_ERROR_STRING_BUFFER
 const jobnameSize C.size_t = C.DRMAA_JOBNAME_BUFFER
 const attrnameSize C.size_t = C.DRMAA_ATTR_BUFFER
 
-// PLACEHOLDER_HOME_DIR is a placeholder for the user's home directory when filling out job template.
-const PLACEHOLDER_HOME_DIR string = "$drmaa_hd_ph$"
+// PlaceholderHomeDirectory is a placeholder for the user's home directory when filling out job template.
+const PlaceholderHomeDirectory string = "$drmaa_hd_ph$"
 
-// PLACEHOLDER_WORKING_DIR is a placeholder for the working directory path which can be used in
+// PlaceholderWorkingDirectory is a placeholder for the working directory path which can be used in
 // the job template (like in the input or output path specification).
-const PLACEHOLDER_WORKING_DIR string = "$drmaa_wd_ph$"
+const PlaceholderWorkingDirectory string = "$drmaa_wd_ph$"
 
-// PLACEHOLDER_TASK_ID is a placeholder for the array job task ID which can be used in the job
+// PlaceholderTaskID is a placeholder for the array job task ID which can be used in the job
 // template (like in the input or output path specification).
-const PLACEHOLDER_TASK_ID string = "$drmaa_incr_ph$"
+const PlaceholderTaskID string = "$drmaa_incr_ph$"
 
 // PsType specifies a job state (output of JobPs()).
 type PsType int
@@ -208,12 +216,12 @@ const (
 	Terminate
 )
 
-// ErrorId is DRMAA error ID representation type
-type ErrorId int
+// ErrorID is DRMAA error ID representation type
+type ErrorID int
 
 const (
 	// Success indicates that no errors occurred
-	Success ErrorId = iota
+	Success ErrorID = iota
 	// InternalError indicates an error within the DRM
 	InternalError
 	// DrmCommunicationFailure indicates a communication problem
@@ -267,7 +275,7 @@ const (
 )
 
 // Internal map between C DRMAA error and Go DRMAA error.
-var errorID = map[C.int]ErrorId{
+var errorID = map[C.int]ErrorID{
 	C.DRMAA_ERRNO_SUCCESS:                            Success,
 	C.DRMAA_ERRNO_INTERNAL_ERROR:                     InternalError,
 	C.DRMAA_ERRNO_DRM_COMMUNICATION_FAILURE:          DrmCommunicationFailure,
@@ -297,7 +305,7 @@ var errorID = map[C.int]ErrorId{
 }
 
 // Internal map between GO DRMAA error und C DRMAA error.
-var internalError = map[ErrorId]C.int{
+var internalError = map[ErrorID]C.int{
 	Success:                        C.DRMAA_ERRNO_SUCCESS,
 	InternalError:                  C.DRMAA_ERRNO_INTERNAL_ERROR,
 	DrmCommunicationFailure:        C.DRMAA_ERRNO_DRM_COMMUNICATION_FAILURE,
@@ -350,8 +358,8 @@ func (ji *JobInfo) ResourceUsage() map[string]string {
 	return ji.resourceUsage
 }
 
-// JobId returns the job id as string.
-func (ji *JobInfo) JobId() string {
+// JobID returns the job id as string.
+func (ji *JobInfo) JobID() string {
 	return ji.jobID
 }
 
@@ -392,14 +400,14 @@ func (ji *JobInfo) HasCoreDump() bool {
 // about the error (the error id).
 type Error struct {
 	Message string
-	Id      ErrorId
+	ID      ErrorID
 }
 
 // makeError is an intenal function which creates an GO DRMAA error.
-func makeError(msg string, id ErrorId) Error {
+func makeError(msg string, id ErrorID) Error {
 	var ce Error
 	ce.Message = msg
-	ce.Id = id
+	ce.ID = id
 	return ce
 }
 
@@ -411,7 +419,7 @@ func (ce Error) Error() string {
 // DRMAA functions (not methods required)
 
 // StrError maps an ErrorId to an error string.
-func StrError(id ErrorId) string {
+func StrError(id ErrorID) string {
 	// check if not found
 	var ie C.int
 	ie = internalError[id]
@@ -463,7 +471,7 @@ func (s *Session) GetDrmSystem() (string, error) {
 
 // GetDrmaaImplementation returns information about the DRMAA implementation.
 func (s *Session) GetDrmaaImplementation() string {
-	return "GO DRMAA Implementation by Daniel Gruber Version 0.2"
+	return fmt.Sprintf("GO DRMAA Implementation by Daniel Gruber Version %s", version)
 }
 
 // Session is a type which represents a DRMAA session.
@@ -856,17 +864,25 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 	}
 	C.drmaa_release_attr_values(crusage)
 	// make a map out of the array
+	jobinfo.resourceUsage = makeUsageMap(usageArray)
+
+	return jobinfo, nil
+}
+
+// makeUsageMap creates out of an array of job usage
+// values (structure is: resource=measurement) a map
+// mapping the resources to its usage values.
+func makeUsageMap(usageArray []string) map[string]string {
+	// make a map out of the array
 	usageMap := make(map[string]string)
 	for i := range usageArray {
 		nameVal := strings.Split(usageArray[i], "=")
 		usageMap[nameVal[0]] = nameVal[1]
 	}
-	jobinfo.resourceUsage = usageMap
-
-	return jobinfo, nil
+	return usageMap
 }
 
-// JobPs returns the cuurent state of a job.
+// JobPs returns the current state of a job.
 func (s *Session) JobPs(jobID string) (PsType, error) {
 	outPs := C.int(0)
 	diag := C.makeString(stringSize)
@@ -910,8 +926,12 @@ func (s *Session) JobPs(jobID string) (PsType, error) {
 	return psType, nil
 }
 
-// JobTemplate represents a job template which is required to
-// submit a job.
+// JobTemplate represents a job template which is required to submit a job.
+// A JobTemplate contains job submission parameters like a name, accounting
+// string, command to execute, it's arguments and so on. In this implementation
+// within a job template a pointer to an allocated C job template is stored
+// which must be freed by the user. The values can only be accessed by the
+// defined methods.
 type JobTemplate struct {
 	// reference to C job template
 	jt *C.drmaa_job_template_t
