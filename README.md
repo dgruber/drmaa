@@ -2,7 +2,7 @@ go-drmaa
 ========
 [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/dgruber/drmaa)
 [![Apache V2 License](http://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/dgruber/drmaa/blob/master/COPYING)
-[![Go Report Card](http://goreportcard.com/badge/dgruber/drmaa)]()
+[![Go Report Card](http://goreportcard.com/badge/dgruber/drmaa)](http://goreportcard.com/report/dgruber/drmaa)
 
 This is a job submission library for Go (#golang) which is compatible to 
 the [DRMAA](http://drmaa.org) standard. The Go library is a wrapper around
