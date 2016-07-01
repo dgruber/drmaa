@@ -1,5 +1,5 @@
 /*
-    Copyright 2013 Daniel Gruber, info@gridengine.eu
+    Copyright 2013, 2015 Daniel Gruber, info@gridengine.eu
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -38,45 +38,62 @@ import (
 	"fmt"
 	"github.com/dgruber/drmaa"
 	"github.com/dgruber/drmaa/gestatus"
+	"os"
 	"time"
 )
 
 func main() {
-
 	/* create a new DRMAA1 session */
-	s, _ := drmaa.MakeSession()
+	s, errMS := drmaa.MakeSession()
+	if errMS != nil {
+		fmt.Printf("Error during session creation: %s\n", errMS)
+		os.Exit(1)
+	}
 	defer s.Exit()
 
-	/* submit the sleep 3600 command to the cluster
-	   by using DRMAA */
-	jt, _ := s.AllocateJobTemplate()
+	/* submit the sleep 3600 command to the cluster by using libdrmaa.so */
+	jt, errJT := s.AllocateJobTemplate()
+	if errJT != nil {
+		fmt.Printf("Error during job template creation: %s\n", errJT)
+		return
+	}
+	// delete job template to avoid memory leaks
+	defer s.DeleteJobTemplate(&jt)
 
+	// set the application to run
 	jt.SetRemoteCommand("sleep")
+	// set the argument for the application
 	jt.SetArg("3600")
 
-	jobId, _ := s.RunJob(&jt)
+	jobID, errRun := s.RunJob(&jt)
+	if errRun != nil {
+		fmt.Printf("Error during job submission: %s\n", errRun)
+		return
+	}
 
-	d, _ := time.ParseDuration("500ms")
-
-	/* wait activly until job is running (use blocking call in real apps) */
-	ps, _ := s.JobPs(jobId)
-
-	for ps != drmaa.PsRunning {
-		fmt.Println("status is: ", ps)
-		time.Sleep(d)
-		ps, _ = s.JobPs(jobId)
+	/* wait actively until job is running */
+	for {
+		if ps, errPS := s.JobPs(jobID); errPS == nil {
+			fmt.Println("status is: ", ps)
+			if ps == drmaa.PsRunning {
+				break
+			}
+		} else {
+			fmt.Printf("Error during job status query: %s\n", errPS)
+			break
+		}
+		time.Sleep(time.Second)
 	}
 
 	/* get detailed job status (Grid Engine specific) */
-	jobStatus, err := gestatus.GetJobStatus(&s, jobId)
-
-	if err != nil {
-		fmt.Println(err)
+	jobStatus, errStatus := gestatus.GetJobStatus(&s, jobID)
+	if errStatus != nil {
+		fmt.Printf("Error during getting Grid Engine job status: %s\n", errStatus)
 		return
 	}
 
 	fmt.Printf("Job Name: %s\n", jobStatus.JobName())
-	fmt.Printf("Job Number: %d\n", jobStatus.JobId())
+	fmt.Printf("Job Number: %d\n", jobStatus.JobID())
 	fmt.Printf("Job Script: %s\n", jobStatus.JobScript())
 	fmt.Printf("Job Args: %s\n", jobStatus.JobArgs())
 	fmt.Printf("Job Owner: %s\n", jobStatus.JobOwner())
