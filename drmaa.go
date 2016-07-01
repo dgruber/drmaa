@@ -678,7 +678,7 @@ func (s *Session) RunJobAs(delegate Sudo, jt *JobTemplate) (string, error) {
 	errNumber := C.drmaa_run_job_as(as, jobId, jobnameSize, jt.jt, diag, stringSize)
 
 	if errNumber != C.DRMAA_ERRNO_SUCCESS && diag != nil {
-		ce := makeError(C.GoString(diag), errorId[errNumber])
+		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return "", &ce
 	}
 	return C.GoString(jobId), nil
@@ -720,7 +720,7 @@ func (s *Session) RunBulkJobsAs(delegate Sudo, jt *JobTemplate, start, end, incr
 		diag, stringSize)
 
 	if errNumber != C.DRMAA_ERRNO_SUCCESS && diag != nil {
-		ce := makeError(C.GoString(diag), errorId[errNumber])
+		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return nil, &ce
 	}
 
@@ -791,7 +791,7 @@ func (s *Session) ControlAs(delegate Sudo, jobId string, action controlType) err
 	defer C.free(unsafe.Pointer(id))
 
 	if errNumber := C.drmaa_control_as(as, id, ca, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
-		ce := makeError(C.GoString(diag), errorId[errNumber])
+		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return &ce
 	}
 	return nil
