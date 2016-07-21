@@ -7,7 +7,8 @@
 if [ "$1" = "--torque" ]; then
     export CGO_CFLAGS='-DTORQUE -I/usr/include/torque'
 else
-    export CGO_LDFLAGS="-L$SGE_ROOT/lib/lx-amd64/"
+    export ARCH=`$SGE_ROOT/util/arch`
+    export CGO_LDFLAGS="-L$SGE_ROOT/lib/$ARCH/"
     export CGO_CFLAGS="-I$SGE_ROOT/include"
 fi
 
