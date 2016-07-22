@@ -70,6 +70,9 @@ import (
  #include <stdio.h>
  #include <stdlib.h>
  #include <stddef.h>
+#if __APPLE__
+ #include <unistd.h>
+#endif
  #include "drmaa.h"
 
 static char* makeString(size_t size) {
