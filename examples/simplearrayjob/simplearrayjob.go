@@ -1,5 +1,5 @@
 /*
-    Copyright 2013, 2015 Daniel Gruber, info@gridengine.eu
+    Copyright 2015 Daniel Gruber, info@gridengine.eu
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -24,12 +24,9 @@
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-    This is a tiny example how to use DRMAA for job submission and
-    gestatus for getting detailed job status.
-
-    In order to use the program you need to usually the LD_LIBRARY_PATH
-    before starting (e.g. export LD_LIBRARY_PATH=$SGE_ROOT/lib/lx-amd64)
-    so that the DRMAA native library of the resource manager can be found.
+   In order to use the program you need to usually the LD_LIBRARY_PATH
+   before starting (e.g. export LD_LIBRARY_PATH=$SGE_ROOT/lib/lx-amd64)
+   so that the DRMAA native library of the resource manager can be found.
 */
 
 package main
@@ -38,7 +35,6 @@ import (
 	"fmt"
 	"github.com/dgruber/drmaa"
 	"os"
-	"time"
 )
 
 func main() {
@@ -50,7 +46,6 @@ func main() {
 	}
 	defer s.Exit()
 
-	/* submit the sleep 3600 command to the cluster by using DRMAA */
 	jt, errJT := s.AllocateJobTemplate()
 	if errJT != nil {
 		fmt.Printf("Error during allocating a new job template: %s\n", errJT)
@@ -61,34 +56,20 @@ func main() {
 
 	// set the application to submit
 	jt.SetRemoteCommand("sleep")
-	jt.SetArg("10")
+	jt.SetArg("1")
 
-	jobID, errRun := s.RunJob(&jt)
+	// submit 50 instances of the sleep binary (which sleeps
+	// always 1 second) as array job tasks: 1, 3, 5, 7, 9, 11, ..., 101
+	jobIDs, errRun := s.RunBulkJobs(&jt, 1, 101, 2)
 	if errRun != nil {
 		fmt.Printf("Error during job submission: %s\n", errRun)
 		return
 	}
 
-	/* wait actively until job is running (use blocking call in real apps) */
-	ps, errPS := s.JobPs(jobID)
-	if errPS != nil {
-		fmt.Printf("Error during job status query: %s\n", errPS)
-		return
+	// wait until all tasks are finished - reap the job information
+	fmt.Println("Waiting until all tasks are finished.")
+	errSync := s.Synchronize(jobIDs, drmaa.TimeoutWaitForever, true)
+	if errSync != nil {
+		fmt.Printf("Error while job synchronization: %s", errSync)
 	}
-
-	for ps != drmaa.PsRunning && errPS == nil {
-		fmt.Println("status is: ", ps)
-		time.Sleep(time.Millisecond * 500)
-		ps, errPS = s.JobPs(jobID)
-	}
-
-	// wait until the job is finished
-	jinfo, errWait := s.Wait(jobID, drmaa.TimeoutWaitForever)
-	if errWait != nil {
-		fmt.Printf("Error during waiting until job %s is finished: %s\n", jobID, errWait)
-		return
-	}
-
-	fmt.Printf("Job exited with exit code: %d\n", jinfo.ExitStatus())
-	fmt.Printf("Resource consumption by the job: %v\n", jinfo.ResourceUsage())
 }

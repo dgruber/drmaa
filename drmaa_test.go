@@ -47,7 +47,7 @@ func testVectorSetter(t *testing.T, f func([]string) error, arg []string, g func
 			if len(arg) != len(garg) {
 				t.Error("Length of array set in the job template does not match length of retrieved values")
 			} else {
-				for i, _ := range arg {
+				for i := range arg {
 					if arg[i] != garg[i] {
 						t.Errorf("Values are not the same: %s vs %s", arg[i], garg[i])
 					}
