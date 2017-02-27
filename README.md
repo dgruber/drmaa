@@ -9,20 +9,20 @@ the [DRMAA](http://drmaa.org) standard. The Go library is a wrapper around
 the [DRMAA C library implementation](https://www.ogf.org/documents/GFD.22.pdf) provided
 by many distributed resource managers (cluster schedulers).
 
-It is developed by using [Univa Grid Engine](http://www.univa.com). The library
+The library was developed using [Univa Grid Engine's](http://www.univa.com) libdrmaa.so. It
 was tested with Grid Engine and Torque, but it should work also other resource manager / cluster scheduler.
 
 The "gestatus" subpackage only works with Grid Engine (some values are only available
 on Univa Grid Engine).
 
 The DRMAA (Distributed Resource Management Application API) standard is meanwhile
-available in version 2. DRMAA2 provides more functionalities around cluster monitoring
+available in version 2. DRMAA2 provides more functionality around cluster monitoring
 and job session management. DRMAA and DRMAA2 are not compatible hence it is expected
 that both libraries are co-existing for a while. The Go DRMAA2 can be found [here](https://github.com/dgruber/drmaa2).
 
-Note: Univa Grid Engine 8.3.0 and later added new functions which allows you 
+Note: Univa Grid Engine 8.3.0 and later added new functions that allows you 
 to submit a job on behalf of another user. This helps creating a DRMAA service
-(like a web portal) which submits jobs. This functionality is available in the
+(like a web portal) that submits jobs. This functionality is available in the
 *UGE83\_sudo* branch: https://github.com/dgruber/drmaa/tree/UGE83_sudo
 The functions are: RunJobsAs(), RunBulkJobsAs(), and ControlAs()
 
@@ -108,7 +108,7 @@ of the job.
     jt.SetArg("1")
 
 A job can be executed with the session **RunJob()** method. If the same
-command should be executed many times, running it as an job array 
+command should be executed many times, running it as a job array 
 would make sense. In Grid Engine each instance gets a task ID assigned
 which the job can see in the SGE_TASK_ID environment variable (which 
 is set to **unknown** for normal jobs). This task ID can be used for 
