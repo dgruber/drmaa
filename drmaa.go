@@ -97,7 +97,7 @@ static void freeStringArray(char **a, const int size) {
    free(a);
 }
 
-int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
+static int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
 #if defined(TORQUE) || defined(SLURM)
     return drmaa_get_num_attr_values(values, (size_t *) size);
 #else
@@ -105,7 +105,7 @@ int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
 #endif
 }
 
-int _drmaa_get_num_attr_names(drmaa_attr_names_t* names, int *size) {
+static int _drmaa_get_num_attr_names(drmaa_attr_names_t* names, int *size) {
 #if defined(TORQUE) || defined(SLURM)
     return drmaa_get_num_attr_names(names, (size_t *) size);
 #else
