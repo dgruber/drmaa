@@ -10,7 +10,7 @@ the [DRMAA C library implementation](https://www.ogf.org/documents/GFD.22.pdf) p
 by many distributed resource managers (cluster schedulers).
 
 The library was developed using [Univa Grid Engine's](http://www.univa.com) libdrmaa.so. It
-was tested with Grid Engine and Torque, but it should work also other resource manager / cluster scheduler.
+was tested with Grid Engine, Torque, and [SLURM](apps.man.poznan.pl/trac/slurm-drmaa), but it should work also other resource managers / cluster schedulers which provide _libdrmaa.so_.
 
 The "gestatus" subpackage only works with Grid Engine (some values are only available
 on Univa Grid Engine).
@@ -52,6 +52,9 @@ For Univa Grid Engine:
 
 For Torque:
 
+If your Torque drmaa.h header file is not located under /usr/include/torque,
+you will have to modify the build.sh script before running it.
+
 ~~~
    ./build.sh --torque
    cd examples/simplesubmit
@@ -59,8 +62,16 @@ For Torque:
    ./simplesubmit
 ~~~
 
-If your Torque drmaa.h header file is not located under /usr/include/torque,
-you will have to modify the build.sh script before running it.
+For SLURM:
+
+~~~
+   ./build.sh --slurm
+   cd examples/simplesubmit
+   go build
+   ./simplesubmit
+~~~
+
+
 
 The example program submits a sleep job into the system and prints out detailed
 job information as soon as the job is started.
