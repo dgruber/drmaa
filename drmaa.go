@@ -97,11 +97,19 @@ static void freeStringArray(char **a, const int size) {
    free(a);
 }
 
-int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
-#ifdef TORQUE
+static int _drmaa_get_num_attr_values(drmaa_attr_values_t* values, int *size) {
+#if defined(TORQUE) || defined(SLURM)
     return drmaa_get_num_attr_values(values, (size_t *) size);
 #else
     return drmaa_get_num_attr_values(values, size);
+#endif
+}
+
+static int _drmaa_get_num_attr_names(drmaa_attr_names_t* names, int *size) {
+#if defined(TORQUE) || defined(SLURM)
+    return drmaa_get_num_attr_names(names, (size_t *) size);
+#else
+    return drmaa_get_num_attr_names(names, size);
 #endif
 }
 */
@@ -569,7 +577,7 @@ func (s *Session) getAttributeNames(vectorAttributes bool) ([]string, error) {
 	// the size is not really required but a good test if that
 	// method is implemented in the underlying C DRMAA library
 	var size C.int
-	errNumber = C.drmaa_get_num_attr_names(vector, &size)
+	errNumber = C._drmaa_get_num_attr_names(vector, &size)
 	if errNumber != C.DRMAA_ERRNO_SUCCESS {
 		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return nil, &ce
