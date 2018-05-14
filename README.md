@@ -106,7 +106,7 @@ Underneath a C job template is allocated which is out-of-scope of the
 Go system. Hence it must be ensured that the job template is deleted
 when it is not used anymore. Also here the Go **defer** statement is useful.
 
-    // prevent memory leaks by freeing the allocated C job template at the end */
+    // prevent memory leaks by freeing the allocated C job template at the end
     defer s.DeleteJobTemplate(&jt)
 
 The job template contains the specification of the job, like the command
@@ -143,6 +143,6 @@ The JobInfo data structure can be get with the **Wait()** method.
     jinfo, errWait := s.Wait(jobID, drmaa.TimeoutWaitForever)
 
 For more details please consult the documentation and the DRMAA 
-standard specifications.
+standard [specifications](https://www.ogf.org/ogf/doku.php/standards/standards).
 
 More examples can be found on my blog at http://www.gridengine.eu.
