@@ -40,7 +40,14 @@ else
 
     export CGO_LDFLAGS="-L$SGE_ROOT/lib/$ARCH/"
     export CGO_CFLAGS="-I$SGE_ROOT/include"
+
+    # adapt to Son of Grid Engine's header file changes
+    if [ "$1" = "--sog" ]; then
+        echo "SOG"
+        export CGO_CFLAGS="-DSOG -I$SGE_ROOT/include"
+    fi
 fi
 
+go test -v
 go build -a
 go install
