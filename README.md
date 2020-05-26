@@ -39,7 +39,7 @@ First download the package:
 
 Next, we need to compile the code.
 
-For Univa Grid Engine:
+For Univa Grid Engine and original SGE:
 
 ~~~
    source /path/to/grid/engine/installation/default/settings.sh
@@ -49,6 +49,18 @@ For Univa Grid Engine:
    export LD_LIBRARY_PATH=$SGE_ROOT/lib/lx-amd64
    ./simplesubmit
 ~~~
+
+For Son of Grid Engine ("loveshack"):
+
+~~~
+   source /path/to/grid/engine/installation/default/settings.sh
+   ./build.sh --sog
+   cd examples/simplesubmit
+   go build
+   export LD_LIBRARY_PATH=$SGE_ROOT/lib/lx-amd64
+   ./simplesubmit
+~~~
+
 
 For [Torque](https://github.com/adaptivecomputing/torque/tree/master/src/drmaa):
 

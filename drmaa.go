@@ -1,5 +1,5 @@
 /*
-   Copyright 2012, 2013, 2014, 2015, 2016 Daniel Gruber, info@gridengine.eu
+   Copyright 2012, 2013, 2014, 2015, 2016, 2020 Daniel Gruber, info@gridengine.eu
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -112,6 +112,15 @@ static int _drmaa_get_num_attr_names(drmaa_attr_names_t* names, int *size) {
     return drmaa_get_num_attr_names(names, size);
 #endif
 }
+
+static int _drmaa_run_bulk_jobs(drmaa_job_ids_t **jobids, const drmaa_job_template_t *jt, int start, int end, int incr, char *diag, size_t diag_len) {
+#if defined(SOG)
+    return drmaa_run_bulk_jobs(jobids, jt, (unsigned) start, (unsigned) end, incr, diag, diag_len);
+#else
+    return drmaa_run_bulk_jobs(jobids, jt, start, end, incr, diag, diag_len);
+#endif
+}
+
 */
 import "C"
 
@@ -663,7 +672,7 @@ func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, 
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
-	errNumber := C.drmaa_run_bulk_jobs(&ids, jt.jt, C.int(start), C.int(end), C.int(incr),
+	errNumber := C._drmaa_run_bulk_jobs(&ids, jt.jt, C.int(start), C.int(end), C.int(incr),
 		diag, stringSize)
 
 	if errNumber != C.DRMAA_ERRNO_SUCCESS && diag != nil {
