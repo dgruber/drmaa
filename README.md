@@ -74,15 +74,12 @@ you will have to modify the build.sh script before running it.
    ./simplesubmit
 ~~~
 
-For [SLURM](https://apps.man.poznan.pl/trac/slurm-drmaa):
+For [SLURM](https://apps.man.poznan.pl/trac/slurm-drmaa) and [the updated 
+SLURM C drmaa binding](https://github.com/natefoo/slurm-drmaa)
 
 ~~~
-   ./build.sh --slurm
-   cd examples/simplesubmit
-   go build
-   ./simplesubmit
+   ./build.sh --slurm /usr/local
 ~~~
-
 
 
 The example program submits a sleep job into the system and prints out detailed
