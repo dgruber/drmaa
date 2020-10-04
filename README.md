@@ -18,7 +18,7 @@ on Univa Grid Engine).
 The DRMAA (Distributed Resource Management Application API) standard is meanwhile
 available in version 2. DRMAA2 provides more functionality around cluster monitoring
 and job session management. DRMAA and DRMAA2 are not compatible hence it is expected
-that both libraries are co-existing for a while. The Go DRMAA2 can be found [here](https://github.com/dgruber/drmaa2).
+that both libraries are co-existing for a while. The Go DRMAA2 can be found [here](https://github.com/dgruber/drmaa2os).
 
 Note: Univa Grid Engine 8.3.0 and later added new functions that allows you 
 to submit a job on behalf of another user. This helps creating a DRMAA service
