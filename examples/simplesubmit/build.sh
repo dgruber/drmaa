@@ -6,6 +6,11 @@
 
 if [ "$1" = "--torque" ]; then
     export CGO_CFLAGS='-DTORQUE -I/usr/include/torque'
+elif [ "$1" = "--slurm" ]; then
+    # expect drmaa is installed in /usr/local - also set export LD_LIBRARY_PATH=/usr/local/lib when
+    # running the example
+    export CGO_CFLAGS='-DSLURM -I/usr/local/include'
+    export CGO_LDFLAGS='-L/usr/local/lib'
 else
     export ARCH=`$SGE_ROOT/util/arch`
     export CGO_LDFLAGS="-L$SGE_ROOT/lib/$ARCH/"
