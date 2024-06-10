@@ -1,5 +1,3 @@
-💙💛
-
 go-drmaa
 ========
 [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/dgruber/drmaa)
@@ -11,8 +9,10 @@ the [DRMAA](http://drmaa.org) standard. The Go library is a wrapper around
 the [DRMAA C library implementation](https://www.ogf.org/documents/GFD.22.pdf) provided
 by many distributed resource managers (cluster schedulers).
 
-The library was developed using [Univa Grid Engine's](http://www.univa.com) libdrmaa.so. It
-was tested with Grid Engine, Torque, and [SLURM](https://github.com/natefoo/slurm-drmaa), but it should work also other resource managers / cluster schedulers which provide _libdrmaa.so_.
+This library fully supports [Open Cluster Scheduler](https://github.com/hpc-gridware/clusterscheduler) and [Gridware Cluster Scheduler](https://www.hpc-gridware.com/).
+
+The library was originally developed using [Univa Grid Engine's](http://www.univa.com) libdrmaa.so. It
+was tested with different versions of Grid Engine, Torque, and [SLURM](https://github.com/natefoo/slurm-drmaa), but it should work also other resource managers / cluster schedulers which provide _libdrmaa.so_.
 
 The "gestatus" subpackage only works with Grid Engine (some values are only available
 on Univa Grid Engine).
@@ -21,12 +21,6 @@ The DRMAA (Distributed Resource Management Application API) standard is meanwhil
 available in version 2. DRMAA2 provides more functionality around cluster monitoring
 and job session management. DRMAA and DRMAA2 are not compatible hence it is expected
 that both libraries are co-existing for a while. The Go DRMAA2 can be found [here](https://github.com/dgruber/drmaa2os).
-
-Note: Univa Grid Engine 8.3.0 and later added new functions that allows you 
-to submit a job on behalf of another user. This helps creating a DRMAA service
-(like a web portal) that submits jobs. This functionality is available in the
-*UGE83\_sudo* branch: https://github.com/dgruber/drmaa/tree/UGE83_sudo
-The functions are: RunJobsAs(), RunBulkJobsAs(), and ControlAs()
 
 ## Compilation ##
 
