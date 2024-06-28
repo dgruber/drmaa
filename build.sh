@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # You need to source the settings.sh file (source /path/to/GE/default/common/settings.sh)
-# of your Grid Engine installation before building. "default" is the CELL name, which can
-# be different in your installation.
+# of your Open Cluster Scheduler or Grid Engine installation before building. "default"
+# is the CELL name, which can be different in your installation.
 
 if [ "$1" = "--drmaa" ]; then
     if [ -z "$2" ]
@@ -11,7 +11,7 @@ if [ "$1" = "--drmaa" ]; then
 	exit 1
     else
 	if [ -d $2 ]
-	then 
+	then
 	    export CGO_LDFLAGS="-L$2/lib"
 	    export CGO_CFLAGS="-I$2/include"
 	else
@@ -32,8 +32,9 @@ elif [ "$1" = "--slurm" ]; then
     fi
     export LD_LIBRARY_PATH="$SLURM_DRMAA_ROOT/lib"
 else
+    # Open Cluster Scheduler provides out-of-the-box compatibility.
     if [ "$SGE_ROOT" = "" ]; then
-        echo "source your Grid Engine settings.(c)sh file"
+        echo "Please source your Open Cluster Scheduler / Grid Engine settings.(c)sh file"
         exit 1
     fi
 

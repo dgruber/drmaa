@@ -1,4 +1,4 @@
-FROM hpcgridware/clusterscheduler-latest-ubuntu2204:6ce1d72ac
+FROM hpcgridware/clusterscheduler-latest-ubuntu2204:eac1ec597
 
 RUN mkdir -p /opt/helpers
 
