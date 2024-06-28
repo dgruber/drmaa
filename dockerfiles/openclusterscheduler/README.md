@@ -6,8 +6,6 @@ without the hassle of manually creating a build environment.
 
 ## Issues
 
-Warning: Currently there is a build issue with hwloc which is not yet fully solved.
-
 ## Building and Starting
 
 Building an Ubuntu 22.04 based container with all dependencies:
