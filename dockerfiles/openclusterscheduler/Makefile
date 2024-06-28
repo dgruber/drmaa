@@ -13,7 +13,7 @@ build:
 run: build
 	@echo "Running the container..."
 	mkdir -p ./installation
-	docker run -it -h master --name $(CONTAINER_NAME) -v ./installation:/opt/cs-install $(IMAGE_NAME):$(IMAGE_TAG) /bin/bash
+	docker run --rm -it -h master --name $(CONTAINER_NAME) -v ./installation:/opt/cs-install $(IMAGE_NAME):$(IMAGE_TAG) /bin/bash
 
 .PHONY: clean
 clean:
