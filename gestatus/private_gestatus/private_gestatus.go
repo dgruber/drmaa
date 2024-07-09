@@ -44,11 +44,12 @@ package geparser
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/dgruber/drmaa"
 	"log"
 	"os/exec"
 	"strconv"
 	"time"
+
+	"github.com/dgruber/drmaa"
 )
 
 var cachedJobStatus = map[string]jobStatusCache{}
@@ -74,10 +75,16 @@ func getValidJobStatusFromCache(jobID string) (ijs InternalJobStatus, found bool
 // Unix converts a time from Epoch to Go time. It checks whether the
 // timestamp is milliseconds or seconds since Epoch.
 func Unix(value, unused int64) time.Time {
+	// Open Cluster Scheduler (OCS) uses 6 digits more
+	if value > 222001201000000 {
+		return time.Unix(value/1000000, value%1000000*1000)
+	}
+	// Old Univa Grid Engine uses 3 digits more
 	if value > 631152000000 {
 		// must be millisecond time stamp (ms since Epoch at 1.1.1990)
 		return time.Unix(int64(value/1000), 0)
 	}
+	// Sun Grid Engine uses seconds since Epoch
 	return time.Unix(value, 0)
 }
 
@@ -581,6 +588,11 @@ func GetMbind(v *InternalJobStatus) string {
 func GetSubmissionTime(v *InternalJobStatus) time.Time {
 	submissionTime := v.Jobinf.Element.JbSubmissionTime
 	st, _ := strconv.Atoi(submissionTime)
+
+	// Open Cluster Scheduler has 6 digits more, hence
+	// check if the submission time value is higher than
+	// that value.
+
 	return Unix((int64)(st), 0)
 }
 
@@ -602,6 +614,7 @@ func GetTaskStartTime(v *InternalJobStatus, taskID int) time.Time {
 	// 8.2. compatibility
 	size82 := len(v.Jobinf.Element.JbJaTasks.JaTaskSublist82)
 
+	// one of both is 0 and the other is not
 	if taskID >= (size+size82) || taskID < 0 {
 		// error taskId not in range
 		return Unix(0, 0)
@@ -613,6 +626,7 @@ func GetTaskStartTime(v *InternalJobStatus, taskID int) time.Time {
 	} else {
 		startTime = v.Jobinf.Element.JbJaTasks.JaTaskSublist82[taskID].JATstarttime
 	}
+
 	return Unix(startTime, 0)
 }
 
