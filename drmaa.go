@@ -1379,7 +1379,7 @@ func (jt *JobTemplate) SetJoinFiles(join bool) error {
 
 // JoinFiles returns if join files is set in the job template.
 func (jt *JobTemplate) JoinFiles() (bool, error) {
-	val, err := getStringValue(jt.jt, C.DRMAA_JOB_NAME)
+	val, err := getStringValue(jt.jt, C.DRMAA_JOIN_FILES)
 	if err != nil {
 		return false, err
 	}
@@ -1426,8 +1426,8 @@ func (jt *JobTemplate) TransferFiles() (FileTransferMode, error) {
 			case "e":
 				ftm.ErrorStream = true
 			}
-			return ftm, nil
 		}
+		return ftm, nil
 	}
 	var ftm FileTransferMode
 	ce := makeError("No job template", errorID[C.DRMAA_ERRNO_INVALID_ARGUMENT])
@@ -1471,7 +1471,6 @@ func (jt *JobTemplate) DeadlineTime() (deadlineTime time.Duration, err error) {
 func (jt *JobTemplate) SetHardWallclockTimeLimit(limit time.Duration) error {
 	if jt != nil && jt.jt != nil {
 		limitString := fmt.Sprintf("%d", int64(limit.Seconds()))
-		fmt.Printf("limit string: %s", limitString)
 		return setNameValue(jt.jt, C.DRMAA_WCT_HLIMIT, limitString)
 	}
 	ce := makeError("No job template", errorID[C.DRMAA_ERRNO_INVALID_ARGUMENT])
