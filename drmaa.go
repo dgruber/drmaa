@@ -1402,6 +1402,10 @@ func (jt *JobTemplate) SetTransferFiles(mode FileTransferMode) error {
 		if mode.ErrorStream {
 			ftm += "e"
 		}
+		// In Open Cluster Scheduler, Gridware Cluster Scheduler, legacy
+		// Grid Engine: delegated_file_staging must be set to "true"
+		// in order to use the transfer files mode.
+		// qconf -mconf --> delegated_file_staging: true
 		return setNameValue(jt.jt, C.DRMAA_TRANSFER_FILES, ftm)
 	}
 	ce := makeError("No job template", errorID[C.DRMAA_ERRNO_INVALID_ARGUMENT])

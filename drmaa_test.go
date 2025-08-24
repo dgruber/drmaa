@@ -1,5 +1,5 @@
 /*
-    Copyright 2012, 2013, 2014, 2015 Daniel Gruber, info@gridengine.eu
+    Copyright 2012, 2013, 2014, 2015, 2025 Daniel Gruber, info@gridengine.eu
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -133,6 +133,116 @@ func TestJobTemplate(t *testing.T) {
 				if em != true {
 					t.Error("SetBlockEmail() set to true but BlocEmail() returns false")
 				}
+			}
+		}
+	}
+}
+
+// TestJoinFilesFix tests the bug fix for JoinFiles() method
+// Previously it was using C.DRMAA_JOB_NAME instead of C.DRMAA_JOIN_FILES
+func TestJoinFilesFix(t *testing.T) {
+	if s, err := MakeSession(); err != nil {
+		t.Fatalf("Error during MakeSession(): %s\n", err)
+	} else {
+		defer s.Exit()
+		jt, errJT := s.AllocateJobTemplate()
+		if errJT != nil {
+			t.Fatalf("Error during AllocateJobTemplate(): %s\n", errJT)
+		}
+		defer s.DeleteJobTemplate(&jt)
+
+		// Test setting JoinFiles to true
+		if err := jt.SetJoinFiles(true); err != nil {
+			t.Errorf("Error setting JoinFiles to true: %s", err)
+		}
+
+		// Test getting JoinFiles value - this should work correctly with the fix
+		joined, err := jt.JoinFiles()
+		if err != nil {
+			t.Errorf("Error getting JoinFiles value: %s", err)
+		} else if !joined {
+			t.Error("JoinFiles should return true after being set to true")
+		}
+
+		// Test setting JoinFiles to false
+		if err := jt.SetJoinFiles(false); err != nil {
+			t.Errorf("Error setting JoinFiles to false: %s", err)
+		}
+
+		joined, err = jt.JoinFiles()
+		if err != nil {
+			t.Errorf("Error getting JoinFiles value after setting to false: %s", err)
+		} else if joined {
+			t.Error("JoinFiles should return false after being set to false")
+		}
+	}
+}
+
+// TestTransferFilesFix tests the bug fix for TransferFiles() method
+// Previously it was returning after processing only the first character.
+// This is optional and need to be enabled in Open Cluster Scheduler with
+// qconf -mconf changing delegated_file_staging to "true"
+func TestTransferFilesFix(t *testing.T) {
+	if s, err := MakeSession(); err != nil {
+		t.Fatalf("Error during MakeSession(): %s\n", err)
+	} else {
+		defer s.Exit()
+		jt, errJT := s.AllocateJobTemplate()
+		if errJT != nil {
+			t.Fatalf("Error during AllocateJobTemplate(): %s\n", errJT)
+		}
+		defer s.DeleteJobTemplate(&jt)
+
+		// Test setting transfer modes for all streams
+		mode := FileTransferMode{
+			InputStream:  true,
+			OutputStream: true,
+			ErrorStream:  true,
+		}
+
+		if err := jt.SetTransferFiles(mode); err != nil {
+			t.Errorf("Error setting TransferFiles (ensure if it is supported and delegated_file_staging is set to true in OCS): %s", err)
+		}
+
+		// Test getting transfer modes - this should process all characters with the fix
+		retrievedMode, err := jt.TransferFiles()
+		if err != nil {
+			t.Errorf("Error getting TransferFiles: %s", err)
+		} else {
+			if !retrievedMode.InputStream {
+				t.Error("InputStream should be true")
+			}
+			if !retrievedMode.OutputStream {
+				t.Error("OutputStream should be true")
+			}
+			if !retrievedMode.ErrorStream {
+				t.Error("ErrorStream should be true")
+			}
+		}
+
+		// Test partial transfer modes
+		partialMode := FileTransferMode{
+			InputStream:  true,
+			OutputStream: false,
+			ErrorStream:  true,
+		}
+
+		if err := jt.SetTransferFiles(partialMode); err != nil {
+			t.Errorf("Error setting partial TransferFiles: %s", err)
+		}
+
+		retrievedPartialMode, err := jt.TransferFiles()
+		if err != nil {
+			t.Errorf("Error getting partial TransferFiles: %s", err)
+		} else {
+			if !retrievedPartialMode.InputStream {
+				t.Error("InputStream should be true in partial mode")
+			}
+			if retrievedPartialMode.OutputStream {
+				t.Error("OutputStream should be false in partial mode")
+			}
+			if !retrievedPartialMode.ErrorStream {
+				t.Error("ErrorStream should be true in partial mode")
 			}
 		}
 	}
