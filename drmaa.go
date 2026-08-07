@@ -87,9 +87,11 @@ static void setString(char **a, char *s, const int n) {
    a[n] = s;
 }
 
+// Frees the array and every string stored in it. NULL entries are
+// skipped by free() itself, so a partially filled array is fine.
 static void freeStringArray(char **a, const int size) {
    int i = 0;
-   if (a == NULL || *a == NULL) {
+   if (a == NULL) {
       return;
    }
    for (; i < size; i++)
@@ -582,6 +584,8 @@ func (s *Session) getAttributeNames(vectorAttributes bool) ([]string, error) {
 		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return nil, &ce
 	}
+	// released on every path, also when reading the attributes below fails
+	defer C.drmaa_release_attr_names(vector)
 
 	// the size is not really required but a good test if that
 	// method is implemented in the underlying C DRMAA library
@@ -604,8 +608,6 @@ func (s *Session) getAttributeNames(vectorAttributes bool) ([]string, error) {
 		}
 		attributes = append(attributes, C.GoString(attrName))
 	}
-	// free vector
-	C.drmaa_release_attr_names(vector)
 	return attributes, nil
 }
 
@@ -679,6 +681,9 @@ func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, 
 		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return nil, &ce
 	}
+	// the job id vector is allocated by the DRMAA library and does not
+	// leave this function, hence it must be released here
+	defer C.drmaa_release_job_ids(ids)
 
 	// collect job ids
 	var jobIds []string
@@ -753,12 +758,14 @@ func (s *Session) Synchronize(jobIds []string, timeout int64, dispose bool) erro
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
+	// the array is a temporary conversion buffer owned by this function,
+	// it frees the array itself and all job id strings stored in it
 	jobids := C.makeStringArray(C.int(len(jobIds) + 1))
+	defer C.freeStringArray(jobids, C.int(len(jobIds)+1))
 
 	for i, jobid := range jobIds {
-		id := C.CString(jobid)
-		defer C.free(unsafe.Pointer(id))
-		C.setString(jobids, id, C.int(i))
+		// do not free here, freeStringArray takes care of it
+		C.setString(jobids, C.CString(jobid), C.int(i))
 	}
 	C.setString(jobids, nil, C.int(len(jobIds)))
 
@@ -799,6 +806,9 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return jobinfo, &ce
 	}
+	// the resource usage vector is allocated by the DRMAA library, releasing
+	// it here covers all error paths below as well
+	defer C.drmaa_release_attr_values(crusage)
 
 	// fill JobInfo struct
 	exited := C.int(0)
@@ -813,7 +823,6 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 		// set exit status
 		exitstatus := C.int(0)
 		if errNumber := C.drmaa_wexitstatus(&exitstatus, cstat, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
-			C.drmaa_release_attr_values(crusage)
 			ce := makeError(C.GoString(diag), errorID[errNumber])
 			return jobinfo, &ce
 		}
@@ -822,7 +831,6 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 
 	signaled := C.int(0)
 	if errNumber := C.drmaa_wifsignaled(&signaled, cstat, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
-		C.drmaa_release_attr_values(crusage)
 		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return jobinfo, &ce
 	}
@@ -833,7 +841,6 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 		termsig := C.makeString(stringSize)
 		defer C.free(unsafe.Pointer(termsig))
 		if errNumber := C.drmaa_wtermsig(termsig, stringSize, cstat, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
-			C.drmaa_release_attr_values(crusage)
 			ce := makeError(C.GoString(diag), errorID[errNumber])
 			return jobinfo, &ce
 		}
@@ -842,7 +849,6 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 
 	aborted := C.int(0)
 	if errNumber := C.drmaa_wifsignaled(&aborted, cstat, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
-		C.drmaa_release_attr_values(crusage)
 		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return jobinfo, &ce
 	}
@@ -854,7 +860,6 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 
 	coreDumped := C.int(0)
 	if errNumber := C.drmaa_wcoredump(&coreDumped, cstat, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
-		C.drmaa_release_attr_values(crusage)
 		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return jobinfo, &ce
 	}
@@ -869,7 +874,6 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 	// rusage
 	usageLength := C.int(0)
 	if errNumber := C._drmaa_get_num_attr_values(crusage, &usageLength); errNumber != C.DRMAA_ERRNO_SUCCESS {
-		C.drmaa_release_attr_values(crusage)
 		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return jobinfo, &ce
 	}
@@ -882,7 +886,6 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 			usageArray = append(usageArray, C.GoString(usage))
 		}
 	}
-	C.drmaa_release_attr_values(crusage)
 	// make a map out of the array
 	jobinfo.resourceUsage = makeUsageMap(usageArray)
 
@@ -1498,7 +1501,7 @@ func (jt *JobTemplate) SetSoftWallclockTimeLimit(limit time.Duration) error {
 
 // SoftWallclockTimeLimit returns the soft wall-clock time limit for the job set in the job template.
 func (jt *JobTemplate) SoftWallclockTimeLimit() (deadlineTime time.Duration, err error) {
-	return jt.parseDuration(C.DRMAA_WCT_HLIMIT)
+	return jt.parseDuration(C.DRMAA_WCT_SLIMIT)
 }
 
 // SetHardRunDurationLimit sets a hard run-time limit for the job in the job template.

@@ -87,6 +87,29 @@ func testDurationSetter(t *testing.T, f func(time.Duration) error, arg time.Dura
 	}
 }
 
+// skipIfAttributeUnsupported skips the running test when the DRM does not
+// support the given job template attribute. Not all attributes of the DRMAA
+// standard are optional, GetAttributeNames() reports what the underlying
+// libdrmaa really implements. Open Cluster Scheduler and Grid Engine for
+// example compile the optional duration limits out of the library, and they
+// only offer drmaa_transfer_files when delegated_file_staging is set to true
+// in the global configuration (qconf -mconf).
+func skipIfAttributeUnsupported(t *testing.T, s *Session, attribute string) {
+	t.Helper()
+
+	names, err := s.GetAttributeNames()
+	if err != nil {
+		t.Fatalf("Error during GetAttributeNames(): %s", err)
+	}
+	for _, name := range names {
+		if name == attribute {
+			return
+		}
+	}
+	t.Skipf("DRM does not support the %q job template attribute, supported are: %v",
+		attribute, names)
+}
+
 func TestJobTemplate(t *testing.T) {
 	if s, err := MakeSession(); err != nil {
 		t.Fatalf("Error during MakeSession(): %s\n", err)
@@ -187,6 +210,8 @@ func TestTransferFilesFix(t *testing.T) {
 		t.Fatalf("Error during MakeSession(): %s\n", err)
 	} else {
 		defer s.Exit()
+		skipIfAttributeUnsupported(t, &s, "drmaa_transfer_files")
+
 		jt, errJT := s.AllocateJobTemplate()
 		if errJT != nil {
 			t.Fatalf("Error during AllocateJobTemplate(): %s\n", errJT)
@@ -243,6 +268,54 @@ func TestTransferFilesFix(t *testing.T) {
 			}
 			if !retrievedPartialMode.ErrorStream {
 				t.Error("ErrorStream should be true in partial mode")
+			}
+		}
+	}
+}
+
+// TestSoftWallclockTimeLimitFix tests the bug fix for SoftWallclockTimeLimit() method
+// Previously it was using C.DRMAA_WCT_HLIMIT instead of C.DRMAA_WCT_SLIMIT
+func TestSoftWallclockTimeLimitFix(t *testing.T) {
+	if s, err := MakeSession(); err != nil {
+		t.Fatalf("Error during MakeSession(): %s\n", err)
+	} else {
+		defer s.Exit()
+		skipIfAttributeUnsupported(t, &s, "drmaa_wct_slimit")
+
+		jt, errJT := s.AllocateJobTemplate()
+		if errJT != nil {
+			t.Fatalf("Error during AllocateJobTemplate(): %s\n", errJT)
+		}
+		defer s.DeleteJobTemplate(&jt)
+
+		// Test setting soft wallclock time limit
+		testDuration := time.Second * 300 // 5 minutes
+		if err := jt.SetSoftWallclockTimeLimit(testDuration); err != nil {
+			t.Errorf("Error setting SoftWallclockTimeLimit: %s", err)
+		}
+
+		// Test getting soft wallclock time limit - this should work correctly with the fix
+		retrievedDuration, err := jt.SoftWallclockTimeLimit()
+		if err != nil {
+			t.Errorf("Error getting SoftWallclockTimeLimit: %s", err)
+		} else {
+			if retrievedDuration.String() != testDuration.String() {
+				t.Errorf("SoftWallclockTimeLimit mismatch: expected %s, got %s", testDuration, retrievedDuration)
+			}
+		}
+
+		// Test with different duration to ensure consistency
+		testDuration2 := time.Second * 600 // 10 minutes
+		if err := jt.SetSoftWallclockTimeLimit(testDuration2); err != nil {
+			t.Errorf("Error setting second SoftWallclockTimeLimit: %s", err)
+		}
+
+		retrievedDuration2, err := jt.SoftWallclockTimeLimit()
+		if err != nil {
+			t.Errorf("Error getting second SoftWallclockTimeLimit: %s", err)
+		} else {
+			if retrievedDuration2.String() != testDuration2.String() {
+				t.Errorf("Second SoftWallclockTimeLimit mismatch: expected %s, got %s", testDuration2, retrievedDuration2)
 			}
 		}
 	}
