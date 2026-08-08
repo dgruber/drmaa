@@ -44,7 +44,6 @@ package geparser
 import (
 	"encoding/xml"
 	"fmt"
-	"log"
 	"os/exec"
 	"strconv"
 	"time"
@@ -803,16 +802,16 @@ func GetJobStatus(s *drmaa.Session, jobID string) (ijs InternalJobStatus, er err
 		cmd := exec.Command("qstat", "-xml", "-j", jobID)
 		out, err := cmd.Output()
 		if err != nil {
-			log.Fatal("Could not execute qstat -xml -j")
-			err := makeError("Could not execute qstat.", drmaa.InternalError)
-			return ijs, &err
+			ce := makeError(fmt.Sprintf("Could not execute qstat: %s", err),
+				drmaa.InternalError)
+			return ijs, &ce
 		}
 
 		js, err := parseXML(out)
 		if err != nil {
-			log.Fatal("Could not parse xml output of qstat.")
-			err := makeError("Could not parse XML output of qstat.", drmaa.InternalError)
-			return ijs, &err
+			ce := makeError(fmt.Sprintf("Could not parse XML output of qstat: %s", err),
+				drmaa.InternalError)
+			return ijs, &ce
 		}
 
 		// Cache job status
@@ -837,13 +836,12 @@ func GetClusterJobsStatus() (ijs QstatJobInfoList, er error) {
 	cmd := exec.Command("qstat", "-xml")
 	out, err := cmd.Output()
 	if err != nil {
-		log.Fatal("Could not execute qstat -xml")
-		err := makeError("Could not execute qstat.", drmaa.InternalError)
-		return ijs, &err
+		ce := makeError(fmt.Sprintf("Could not execute qstat: %s", err),
+			drmaa.InternalError)
+		return ijs, &ce
 	}
 	qsjil, err := parseQstatXML(out)
 	if err != nil {
-		fmt.Println(err)
 		return ijs, err
 	}
 	return qsjil, nil
