@@ -632,10 +632,19 @@ func (s *Session) AllocateJobTemplate() (jt JobTemplate, err error) {
 	return jt, nil
 }
 
-// DeleteJobTemplate delets (and frees memory) of an allocated job template.
+// DeleteJobTemplate deletes (and frees memory) of an allocated job template.
 // Must be called in to prevent memory leaks. JobTemplates
 // are not handled in Go garbage collector.
+//
+// The job template is invalidated afterwards, so that deleting it twice or
+// using it again reports "No job template" instead of handing freed memory
+// to the DRMAA library.
 func (s *Session) DeleteJobTemplate(jt *JobTemplate) error {
+	if jt == nil || jt.jt == nil {
+		ce := makeError("No job template", errorID[C.DRMAA_ERRNO_INVALID_JOB])
+		return &ce
+	}
+
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
@@ -645,11 +654,19 @@ func (s *Session) DeleteJobTemplate(jt *JobTemplate) error {
 		ce := makeError(C.GoString(diag), errorID[errNumber])
 		return &ce
 	}
+	// the C job template is freed, forget the pointer so that it can not be
+	// freed or dereferenced a second time
+	jt.jt = nil
 	return nil
 }
 
 // RunJob submits a job in a (initialized) session to the cluster scheduler.
 func (s *Session) RunJob(jt *JobTemplate) (string, error) {
+	if jt == nil || jt.jt == nil {
+		ce := makeError("No job template", errorID[C.DRMAA_ERRNO_INVALID_JOB])
+		return "", &ce
+	}
+
 	jobID := C.makeString(jobnameSize)
 	defer C.free(unsafe.Pointer(jobID))
 
@@ -667,6 +684,11 @@ func (s *Session) RunJob(jt *JobTemplate) (string, error) {
 
 // RunBulkJobs submits a job as an array job.
 func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, error) {
+	if jt == nil || jt.jt == nil {
+		ce := makeError("No job template", errorID[C.DRMAA_ERRNO_INVALID_JOB])
+		return nil, &ce
+	}
+
 	var ids *C.drmaa_job_ids_t
 	jobID := C.makeString(jobnameSize)
 	defer C.free(unsafe.Pointer(jobID))
