@@ -46,29 +46,52 @@ import (
 	"fmt"
 	"os/exec"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/dgruber/drmaa"
 )
 
-var cachedJobStatus = map[string]jobStatusCache{}
+// cacheValidity is how long a cached qstat result is handed out before
+// a new qstat call is made.
+const cacheValidity = 5 * time.Second
 
-/* TODO reap cache */
+// cachedJobStatus is shared by all callers of GetJobStatus, which are
+// typically one goroutine per observed job, hence the mutex. Entries are
+// dropped once they are older than cacheValidity, see storeJobStatusInCache.
+var (
+	cacheMutex      sync.RWMutex
+	cachedJobStatus = map[string]jobStatusCache{}
+)
 
 func getValidJobStatusFromCache(jobID string) (ijs InternalJobStatus, found bool) {
+	cacheMutex.RLock()
+	defer cacheMutex.RUnlock()
+
 	/* only running jobs are cached */
-	if cachedJobStatus == nil {
-		return ijs, false
-	}
 	if cjs, found := cachedJobStatus[jobID]; found {
-		/* check if expired (5 seconds) */
-		lastUpdate := time.Since(cjs.lastUpdate)
-		if lastUpdate.Seconds() <= 5 {
+		if time.Since(cjs.lastUpdate) <= cacheValidity {
 			/* valid cache */
 			return cjs.jobStatus, true
 		}
 	}
 	return ijs, false
+}
+
+// storeJobStatusInCache remembers the job status of the given job and
+// removes all entries which are expired. Reaping on write keeps the cache
+// at the size of the set of jobs observed within cacheValidity, instead of
+// growing with every job id ever queried.
+func storeJobStatusInCache(jobID string, js InternalJobStatus) {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	for id, cjs := range cachedJobStatus {
+		if time.Since(cjs.lastUpdate) > cacheValidity {
+			delete(cachedJobStatus, id)
+		}
+	}
+	cachedJobStatus[jobID] = jobStatusCache{time.Now(), js}
 }
 
 // Unix converts a time from Epoch to Go time. It checks whether the
@@ -815,7 +838,7 @@ func GetJobStatus(s *drmaa.Session, jobID string) (ijs InternalJobStatus, er err
 		}
 
 		// Cache job status
-		cachedJobStatus[jobID] = jobStatusCache{time.Now(), js}
+		storeJobStatusInCache(jobID, js)
 		return js, nil
 	}
 	// return cached job status

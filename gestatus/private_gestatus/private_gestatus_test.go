@@ -28,9 +28,12 @@
 package geparser
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"sync"
 	"testing"
+	"time"
 )
 
 // A library must never terminate the process of its caller. The functions
@@ -85,5 +88,108 @@ func TestGetClusterJobsStatusDoesNotExitOnQstatFailure(t *testing.T) {
 		t.Errorf("GetClusterJobsStatus() terminated the process with exit code %d "+
 			"instead of returning an error. A library must not call log.Fatal() or "+
 			"os.Exit(). Child output: %s", exitCode, out)
+	}
+}
+
+// resetJobStatusCache empties the shared cache so that a test starts from a
+// known state and does not leave entries behind for the next one.
+func resetJobStatusCache(t *testing.T) {
+	t.Helper()
+
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+	cachedJobStatus = map[string]jobStatusCache{}
+}
+
+// TestJobStatusCacheConcurrentAccess drives the shared job status cache from
+// several goroutines at once. One goroutine per observed job is the natural
+// way to use gestatus, and the cache used to be an unsynchronized global map.
+// Without the mutex the Go runtime aborts the whole process with
+// "fatal error: concurrent map writes", which is a throw and not a panic, so
+// recover() cannot turn it into a test failure. Run with -race to also catch
+// the read/write races which the runtime detector does not always report.
+func TestJobStatusCacheConcurrentAccess(t *testing.T) {
+	resetJobStatusCache(t)
+	t.Cleanup(func() { resetJobStatusCache(t) })
+
+	const (
+		goroutines = 8
+		iterations = 250
+	)
+
+	var wg sync.WaitGroup
+	for g := 0; g < goroutines; g++ {
+		wg.Add(1)
+		go func(worker int) {
+			defer wg.Done()
+			for i := 0; i < iterations; i++ {
+				// distinct ids keep the writers hitting different buckets,
+				// a shared id keeps them hitting the same one
+				storeJobStatusInCache(fmt.Sprintf("%d.%d", worker, i), InternalJobStatus{})
+				storeJobStatusInCache("shared", InternalJobStatus{})
+				getValidJobStatusFromCache("shared")
+			}
+		}(g)
+	}
+	wg.Wait()
+}
+
+// TestJobStatusCacheEvictsExpiredEntries verifies that the cache does not grow
+// without bound. Entries used to be added and never removed, so a long running
+// process which polls many different jobs retained a full InternalJobStatus,
+// including every environment variable of the job, for every job id it ever
+// queried.
+func TestJobStatusCacheEvictsExpiredEntries(t *testing.T) {
+	resetJobStatusCache(t)
+	t.Cleanup(func() { resetJobStatusCache(t) })
+
+	const expiredEntries = 100
+
+	cacheMutex.Lock()
+	for i := 0; i < expiredEntries; i++ {
+		cachedJobStatus[fmt.Sprintf("expired%d", i)] = jobStatusCache{
+			lastUpdate: time.Now().Add(-2 * cacheValidity),
+		}
+	}
+	cacheMutex.Unlock()
+
+	storeJobStatusInCache("fresh", InternalJobStatus{})
+
+	cacheMutex.RLock()
+	size := len(cachedJobStatus)
+	_, freshFound := cachedJobStatus["fresh"]
+	cacheMutex.RUnlock()
+
+	if !freshFound {
+		t.Errorf("The entry just stored is not in the cache.")
+	}
+	if size != 1 {
+		t.Errorf("Cache holds %d entries after storing one fresh entry, expected 1. "+
+			"%d expired entries were not reaped.", size, size-1)
+	}
+}
+
+// TestJobStatusCacheExpiry checks that an entry older than cacheValidity is
+// reported as a cache miss, so that a new qstat call is made.
+func TestJobStatusCacheExpiry(t *testing.T) {
+	resetJobStatusCache(t)
+	t.Cleanup(func() { resetJobStatusCache(t) })
+
+	storeJobStatusInCache("fresh", InternalJobStatus{})
+	if _, found := getValidJobStatusFromCache("fresh"); !found {
+		t.Errorf("A freshly stored entry is reported as a cache miss.")
+	}
+
+	cacheMutex.Lock()
+	cachedJobStatus["stale"] = jobStatusCache{
+		lastUpdate: time.Now().Add(-2 * cacheValidity),
+	}
+	cacheMutex.Unlock()
+
+	if _, found := getValidJobStatusFromCache("stale"); found {
+		t.Errorf("An entry older than %s is reported as a cache hit.", cacheValidity)
+	}
+	if _, found := getValidJobStatusFromCache("neverstored"); found {
+		t.Errorf("An entry which was never stored is reported as a cache hit.")
 	}
 }
