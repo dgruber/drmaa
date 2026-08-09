@@ -917,12 +917,20 @@ func (s *Session) Wait(jobID string, timeout int64) (jobinfo JobInfo, err error)
 // makeUsageMap creates out of an array of job usage
 // values (structure is: resource=measurement) a map
 // mapping the resources to its usage values.
+//
+// The entries are produced by the DRMAA library, not by this package, so they
+// are not assumed to be well formed: an entry without a separator is skipped
+// instead of causing a panic, and only the first separator is used, so a
+// measurement which itself contains one is kept intact.
 func makeUsageMap(usageArray []string) map[string]string {
 	// make a map out of the array
 	usageMap := make(map[string]string)
-	for i := range usageArray {
-		nameVal := strings.Split(usageArray[i], "=")
-		usageMap[nameVal[0]] = nameVal[1]
+	for _, usage := range usageArray {
+		name, value, found := strings.Cut(usage, "=")
+		if !found {
+			continue
+		}
+		usageMap[name] = value
 	}
 	return usageMap
 }

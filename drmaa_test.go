@@ -394,3 +394,79 @@ func TestSimpleJobSubmission(t *testing.T) {
 		}
 	}
 }
+
+// TestMakeUsageMap covers the conversion of the resource usage vector into a
+// map. The entries come from the DRMAA library, so the function must not trust
+// their shape. It used to do strings.Split(entry, "=") and index element 1
+// unconditionally, which panicked inside Session.Wait() on any entry without a
+// separator, and silently truncated any measurement which contained one.
+//
+// This is pure Go, it needs no session and no cluster.
+func TestMakeUsageMap(t *testing.T) {
+	tests := []struct {
+		name  string
+		usage []string
+		want  map[string]string
+	}{
+		{
+			name:  "single entry",
+			usage: []string{"cpu=1.5"},
+			want:  map[string]string{"cpu": "1.5"},
+		},
+		{
+			name:  "several entries",
+			usage: []string{"cpu=1.5", "mem=1024.0000", "wallclock=42"},
+			want:  map[string]string{"cpu": "1.5", "mem": "1024.0000", "wallclock": "42"},
+		},
+		{
+			name:  "measurement containing a separator is kept intact",
+			usage: []string{"start_time=2026-08-09T07=40=17"},
+			want:  map[string]string{"start_time": "2026-08-09T07=40=17"},
+		},
+		{
+			name:  "entry without a separator is skipped",
+			usage: []string{"cpu=1.5", "nonsense"},
+			want:  map[string]string{"cpu": "1.5"},
+		},
+		{
+			name:  "empty entry is skipped",
+			usage: []string{"", "cpu=1.5", ""},
+			want:  map[string]string{"cpu": "1.5"},
+		},
+		{
+			name:  "empty measurement is kept",
+			usage: []string{"cpu="},
+			want:  map[string]string{"cpu": ""},
+		},
+		{
+			name:  "no entries",
+			usage: nil,
+			want:  map[string]string{},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := makeUsageMap(test.usage)
+			if got == nil {
+				t.Fatalf("makeUsageMap() returned a nil map.")
+			}
+			if len(got) != len(test.want) {
+				t.Errorf("makeUsageMap(%q) returned %d entries (%v), expected %d (%v).",
+					test.usage, len(got), got, len(test.want), test.want)
+			}
+			for name, wantValue := range test.want {
+				value, found := got[name]
+				if !found {
+					t.Errorf("makeUsageMap(%q) has no entry %q, got %v.",
+						test.usage, name, got)
+					continue
+				}
+				if value != wantValue {
+					t.Errorf("makeUsageMap(%q)[%q] is %q, expected %q.",
+						test.usage, name, value, wantValue)
+				}
+			}
+		})
+	}
+}
